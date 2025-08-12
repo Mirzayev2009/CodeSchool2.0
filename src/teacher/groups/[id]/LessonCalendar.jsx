@@ -97,10 +97,7 @@ export default function LessonCalendar({ groupId }) {
       "2025-08-09": "present",
       "2025-08-10": "present",
       "2025-08-11": "present",
-      "2025-08-12": "present",
-      "2025-08-13": "present",
-      "2025-08-14": "present",
-      "2025-08-15": "absent"
+      
     }
   },
   {
@@ -135,10 +132,7 @@ export default function LessonCalendar({ groupId }) {
       "2025-08-09": "absent",
       "2025-08-10": "present",
       "2025-08-11": "present",
-      "2025-08-12": "excused",
-      "2025-08-13": "present",
-      "2025-08-14": "present",
-      "2025-08-15": "present"
+
     }
   },
   {
@@ -173,10 +167,7 @@ export default function LessonCalendar({ groupId }) {
       "2025-08-09": "present",
       "2025-08-10": "present",
       "2025-08-11": "present",
-      "2025-08-12": "absent",
-      "2025-08-13": "present",
-      "2025-08-14": "present",
-      "2025-08-15": "present"
+
     }
   },
   {
@@ -211,10 +202,7 @@ export default function LessonCalendar({ groupId }) {
       "2025-08-09": "present",
       "2025-08-10": "present",
       "2025-08-11": "excused",
-      "2025-08-12": "present",
-      "2025-08-13": "present",
-      "2025-08-14": "present",
-      "2025-08-15": "present"
+
     }
   },
   {
@@ -249,10 +237,7 @@ export default function LessonCalendar({ groupId }) {
       "2025-08-09": "absent",
       "2025-08-10": "present",
       "2025-08-11": "present",
-      "2025-08-12": "present",
-      "2025-08-13": "present",
-      "2025-08-14": "present",
-      "2025-08-15": "present"
+
     }
   },
   {
@@ -287,10 +272,7 @@ export default function LessonCalendar({ groupId }) {
       "2025-08-09": "absent",
       "2025-08-10": "present",
       "2025-08-11": "present",
-      "2025-08-12": "present",
-      "2025-08-13": "present",
-      "2025-08-14": "present",
-      "2025-08-15": "present"
+
     }
   },
   {
@@ -325,10 +307,7 @@ export default function LessonCalendar({ groupId }) {
       "2025-08-09": "present",
       "2025-08-10": "present",
       "2025-08-11": "absent",
-      "2025-08-12": "present",
-      "2025-08-13": "present",
-      "2025-08-14": "present",
-      "2025-08-15": "present"
+
     }
   },
   {
@@ -363,10 +342,7 @@ export default function LessonCalendar({ groupId }) {
       "2025-08-09": "present",
       "2025-08-10": "present",
       "2025-08-11": "present",
-      "2025-08-12": "present",
-      "2025-08-13": "present",
-      "2025-08-14": "excused",
-      "2025-08-15": "present"
+
     }
   },
   {
@@ -412,7 +388,8 @@ const [attendanceData, setAttendanceData] = useState(() => {
     days.forEach((day, index) => {
       const dateObj = weekDates[index];
       const dateKey = dateObj.toISOString().slice(0, 10);
-      data[student.id][day] = student.attendance?.[dateKey] || 'absent';
+      // If no attendance, leave empty string
+      data[student.id][day] = student.attendance?.[dateKey] || '';
     });
   });
   return data;
@@ -438,21 +415,26 @@ const [attendanceData, setAttendanceData] = useState(() => {
   const toggleAttendance = (studentId, dayIndex) => {
     const date = weekDates[dayIndex];
     const dayKey = `${dayIndex}_${currentWeek}`;
-    
-    // Can't edit if not in edit mode
-    if (!isEditMode) return;
-    
-    // Can't edit future dates that aren't opened
-    if (isFutureDate(date) && !openedDates[dayKey]) return;
-    
+    const isTodayDate = isToday(date);
+    const isPast = isPastDate(date);
+    const isFuture = isFutureDate(date);
+
+    // Only allow toggle if:
+    // - Today (always)
+    // - Past and Edit Mode is ON
+    if (!(isTodayDate || (isPast && isEditMode))) return;
+
     setAttendanceData(prev => {
-      const current = prev[studentId][days[dayIndex]] || 'present';
-      let next = 'present';
-      if (current === 'present') next = 'absent';
+      const current = prev[studentId][days[dayIndex]] || '';
+      let next = '';
+      // Cycle: empty → present → absent → excused → empty
+      if (current === '') next = 'present';
+      else if (current === 'present') next = 'absent';
       else if (current === 'absent') next = 'excused';
-      
+      else if (current === 'excused') next = '';
+
       setHasChanges(true);
-      
+
       return {
         ...prev,
         [studentId]: {
@@ -505,7 +487,8 @@ const [attendanceData, setAttendanceData] = useState(() => {
       case 'present': return '✅';
       case 'absent': return '❌';
       case 'excused': return '➖';
-      default: return '⏳';
+      case '': return '';
+      default: return '';
     }
   };
 
@@ -592,15 +575,18 @@ const [attendanceData, setAttendanceData] = useState(() => {
             
             {/* Edit/Save Controls */}
             <div className="flex items-center space-x-2">
-              {!isEditMode ? (
+              {/* Always show Edit Mode button if not in edit mode and no unsaved changes */}
+              {!isEditMode && !hasChanges && (
                 <button
                   onClick={() => setIsEditMode(true)}
                   className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
                 >
-                  <i className="ri-edit-line w-4 h-4 flex items-center justify-center mr-1 inline-flex"></i>
+                  <i className="ri-edit-line w-4 h-4 flex items-center justify-center mr-1"></i>
                   Edit Mode
                 </button>
-              ) : (
+              )}
+              {/* Show Save/Cancel if there are unsaved changes (even if not in edit mode) */}
+              {hasChanges && (
                 <>
                   <button
                     onClick={cancelEdit}
@@ -621,7 +607,7 @@ const [attendanceData, setAttendanceData] = useState(() => {
                     }`}
                     disabled={!hasChanges}
                   >
-                    <i className="ri-save-line w-4 h-4 flex items-center justify-center mr-1 inline-flex"></i>
+                    <i className="ri-save-line w-4 h-4 flex items-center justify-center mr-1"></i>
                     Save Changes
                   </button>
                 </>
@@ -718,11 +704,23 @@ const [attendanceData, setAttendanceData] = useState(() => {
               </div>
               {days.map((day, dayIndex) => {
                 const date = weekDates[dayIndex];
-                const dayKey = `${dayIndex}_${currentWeek}`;
+                const isTodayDate = isToday(date);
+                const isPast = isPastDate(date);
                 const isFuture = isFutureDate(date);
-                const isOpened = openedDates[dayKey];
-                const isDisabled = !isEditMode || (isFuture && !isOpened);
-                
+
+                // Button is enabled if:
+                // - Today (always editable)
+                // - Past and Edit Mode is ON
+                // Otherwise (future), always disabled
+                let isDisabled = false;
+                if (isTodayDate) {
+                  isDisabled = false;
+                } else if (isPast) {
+                  isDisabled = !isEditMode;
+                } else if (isFuture) {
+                  isDisabled = true;
+                }
+
                 return (
                   <button
                     key={`${student.id}-${day}`}
@@ -730,13 +728,14 @@ const [attendanceData, setAttendanceData] = useState(() => {
                     className={`p-1 m-0.5 rounded text-xs font-medium transition-colors ${
                       getAttendanceColor(attendanceData[student.id][day], isDisabled)
                     } ${
-                      isEditMode && !isDisabled
+                      (!isDisabled)
                         ? 'hover:opacity-80 cursor-pointer ring-2 ring-transparent hover:ring-blue-300' 
                         : 'cursor-default'
                     }`}
                     title={`${student.name} - ${day}: ${attendanceData[student.id][day]} ${
-                      isEditMode && !isDisabled ? '(Click to change)' : 
-                      isFuture && !isOpened ? '(Locked - unlock date first)' : ''
+                      !isDisabled ? '(Click to change)' :
+                      isFuture ? '(Future date - locked)' :
+                      isPast && !isEditMode ? '(Past date - click Edit Mode to change)' : ''
                     }`}
                     disabled={isDisabled}
                   >

@@ -1,10 +1,12 @@
 
 import { Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 
 import StudentHeader from '../../../../../../components/StudentHeader';
 import HomeworkDetailClient from './HomeworkDetailClient';
 
-export default function HomeworkDetailPage({ params }) {
+export default function HomeworkDetailPage() {
+  const { id, homeworkId } = useParams(); // ✅ Get from URL
   // Mock homework data
   const homeworkData = {
     '1': {
@@ -173,15 +175,15 @@ console.log(result1, result2);`,
     }
   };
 
-  const homework = homeworkData[params.homeworkId] || homeworkData['1'];
+  const homework = homeworkData[homeworkId] || homeworkData['1'];
 
   return (
     <div>
       <StudentHeader />
       <HomeworkDetailClient 
         homework={homework}
-        assignmentId={params.id}
-        homeworkId={params.homeworkId}
+        assignmentId={id}
+        homeworkId={homeworkId}
       />
     </div>
   );

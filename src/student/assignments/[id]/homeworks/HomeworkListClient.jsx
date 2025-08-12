@@ -79,7 +79,7 @@ export default function HomeworkListClient({ assignment, homeworks, assignmentId
         {/* Breadcrumb */}
         <div className="mb-6">
           <Link 
-            href="/student/assignments" 
+           to="/student/assignments" 
             className={`inline-flex items-center transition-colors mb-4 ${
               isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-800'
             }`}
@@ -149,7 +149,7 @@ export default function HomeworkListClient({ assignment, homeworks, assignmentId
               {homeworks.map((homework, index) => (
                 <Link 
                   key={homework.id}
-                  href={`/student/assignments/${assignmentId}/homeworks/${homework.id}`}
+                 to={`/student/assignments/${assignmentId}/homeworks/${homework.id}`}
                   className={`block p-4 rounded-lg border transition-all ${
                     isDarkMode 
                       ? 'bg-gray-700 border-gray-600 hover:bg-gray-650 hover:border-gray-500' 

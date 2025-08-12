@@ -61,7 +61,7 @@ export default function StudentDashboard() {
   ];
 
   return (
-    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} pt-16`}>
+    <div className={`min-h-screen  ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} pt-16`}>
       <StudentHeader />
       
       <div className="max-w-7xl mx-auto px-6 py-8">

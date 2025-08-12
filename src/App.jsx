@@ -10,7 +10,7 @@ import NotFound from './not-found';
 import StudentDashboard from './student/dashboard/page';
 import StudentAssignments from './student/assignments/page';
 import HomeworkList from './student/assignments/[id]/homeworks/page';
-import HomeworkDetail from './student/assignments/[id]/homeworks/[homeworkId]/page';
+import HomeworkDetailPage from './student/assignments/[id]/homeworks/[homeworkId]/page';
 import StudentGroupDetail from './student/groups/[id]/page';
 import StudentProfile from './student/profile/page';
 
@@ -40,7 +40,7 @@ function App() {
 
 <Route
   path="/student/assignments/:id/homeworks/:homeworkId"
-  element={<HomeworkDetail />}
+  element={<HomeworkDetailPage />}
 />
         <Route path="/student/groups/:id" element={<StudentGroupDetail />} />
         <Route path="/student/profile" element={<StudentProfile />} />

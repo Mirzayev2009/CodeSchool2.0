@@ -8,6 +8,7 @@ export default function StudentHeader() {
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showGroups, setShowGroups] = useState(false);
    const navigate = useNavigate();
 
   useEffect(() => {
@@ -76,16 +77,16 @@ export default function StudentHeader() {
 
   return (
     <>
-      <header className={`${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'} border-b fixed top-0 left-0 right-0 z-40`}>
+      <header className={`${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-200'}sticky top-0 z-50 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700`}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-8">
               <Link to="/student/dashboard" className="flex items-center">
-                <span className="text-2xl font-bold text-blue-600 font-['Pacifico']">CodeSchool</span>
+                <span className="text-2xl font-bold mr-4 text-blue-600 font-['Pacifico']">CodeSchool</span>
               </Link>
               
               {/* Navigation Links */}
-              <nav className="hidden md:flex items-center space-x-6">
+              <nav className="flex  md:flex items-center space-x-6">
                 <Link 
                   to="/student/dashboard" 
                   className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
@@ -102,30 +103,59 @@ export default function StudentHeader() {
                   Assignments
                 </Link>
                 
-                <div className="relative group">
-                  <button className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
-                    <i className="ri-group-line w-4 h-4 flex items-center justify-center mr-2 inline-flex"></i>
-                    My Groups
-                  </button>
-                  <div className={`absolute top-full left-0 mt-2 w-64 ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg shadow-lg border py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50`}>
-                    <Link to="/student/groups/1" className={`flex items-center px-4 py-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                      <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                      JavaScript Fundamentals
-                    </Link>
-                    <Link to="/student/groups/2" className={`flex items-center px-4 py-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                      <div className="w-3 h-3 bg-cyan-500 rounded-full mr-3"></div>
-                      React Development
-                    </Link>
-                    <Link to="/student/groups/3" className={`flex items-center px-4 py-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                      <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                      Python for Beginners
-                    </Link>
-                    <Link to="/student/groups/4" className={`flex items-center px-4 py-2 text-sm transition-colors ${isDarkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                      <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
-                      Database Design
-                    </Link>
-                  </div>
-                </div>
+
+  <div className="relative">
+  {/* Toggle Button */}
+  <button
+    onClick={() => setShowGroups(prev => !prev)}
+    className={`flex items-center text-sm font-medium px-3 py-2 rounded-lg transition-colors
+      ${isDarkMode
+        ? 'text-gray-300 hover:text-white hover:bg-gray-800'
+        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+      }`}
+  >
+    <i className="ri-group-line w-4 h-4 mr-2"></i>
+    My Groups
+  </button>
+
+  {/* Dropdown */}
+  {showGroups && (
+    <div
+      className={`absolute top-full left-0 mt-2 w-64 border rounded-lg shadow-lg py-2 z-50
+        ${isDarkMode
+          ? 'bg-gray-800 border-gray-700'
+          : 'bg-white border-gray-200'
+        }
+        transition-all duration-200 ease-out
+      `}
+    >
+      {[
+        { id: 1, color: 'bg-blue-500', name: 'JavaScript Fundamentals' },
+        { id: 2, color: 'bg-cyan-500', name: 'React Development' },
+        { id: 3, color: 'bg-green-500', name: 'Python for Beginners' },
+        { id: 4, color: 'bg-purple-500', name: 'Database Design' },
+      ].map((group) => (
+        <Link
+          key={group.id}
+          to={`/student/groups/${group.id}`}
+          onClick={() => setShowGroups(false)}
+          className={`flex items-center px-4 py-2 text-sm transition-colors
+            ${isDarkMode
+              ? 'text-gray-300 hover:bg-gray-700'
+              : 'text-gray-700 hover:bg-gray-50'
+            }`}
+        >
+          <div className={`w-3 h-3 ${group.color} rounded-full mr-3`}></div>
+          {group.name}
+        </Link>
+      ))}
+    </div>
+  )}
+</div>
+
+ 
+
+
               </nav>
             </div>
 
