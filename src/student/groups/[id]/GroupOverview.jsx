@@ -1,38 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useUser } from '../../UserContext';
+import { getLesson } from '../../lessonApi';
 
-export default function GroupOverview({ groupId }) {
-  const groupsData = {
-    '1': {
-      name: 'JavaScript Fundamentals',
-      teacher: 'Dr. Sarah Wilson',
-      description: 'Master the core concepts of JavaScript programming including variables, functions, objects, and modern ES6+ features.',
-      image: 'https://readdy.ai/api/search-image?query=modern%20JavaScript%20programming%20course%20illustration%20with%20clean%20geometric%20design%2C%20coding%20symbols%2C%20laptop%20screen%20with%20code%2C%20bright%20blue%20and%20yellow%20colors%2C%20minimalist%20educational%20style&width=400&height=200&seq=js-detail&orientation=landscape',
-      level: 'Beginner',
-      duration: '12 weeks',
-      students: 28,
-      progress: 75,
-      color: 'bg-blue-500',
-      nextLesson: 'Tomorrow 10:00 AM',
-      schedule: 'Mon, Wed, Fri - 10:00 AM',
-      room: 'Room 301'
-    },
-    '2': {
-      name: 'React Development',
-      teacher: 'Prof. Michael Chen',
-      description: 'Learn to build modern web applications using React, including hooks, state management, and component architecture.',
-      image: 'https://readdy.ai/api/search-image?query=React%20programming%20course%20illustration%20with%20modern%20component%20design%2C%20coding%20interface%2C%20clean%20geometric%20patterns%2C%20cyan%20and%20blue%20colors%2C%20educational%20technology%20style&width=400&height=200&seq=react-detail&orientation=landscape',
-      level: 'Intermediate',
-      duration: '10 weeks',
-      students: 24,
-      progress: 60,
-      color: 'bg-cyan-500',
-      nextLesson: 'Wed 2:00 PM',
-      schedule: 'Tue, Thu - 2:00 PM',
-      room: 'Room 205'
+  const { token } = useUser();
+  const [group, setGroup] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchGroup() {
+      if (!token || !groupId) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getLesson(groupId, token);
+        setGroup({
+          name: data.name || data.title || 'Group',
+          teacher: data.teacher_name || 'Unknown Teacher',
+          description: data.description || '',
+          image: data.image_url || 'https://readdy.ai/api/search-image?query=education%20group%20course&width=400&height=200',
+          level: data.level || 'N/A',
+          duration: data.duration || 'N/A',
+          students: data.student_count || 0,
+          progress: data.progress || 0,
+          color: 'bg-blue-500', // Optionally map color from backend
+          nextLesson: data.next_lesson || 'N/A',
+          schedule: data.schedule || 'N/A',
+          room: data.room || 'N/A'
+        });
+      } catch (err) {
+        setError('Failed to load group info');
+      } finally {
+        setLoading(false);
+      }
     }
-  };
-
-  const group = groupsData[groupId] || groupsData['1'];
+    fetchGroup();
+  }, [token, groupId]);
 
   const getLevelColor = (level) => {
     switch (level) {
@@ -43,6 +46,15 @@ export default function GroupOverview({ groupId }) {
     }
   };
 
+  if (loading) {
+    return <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center">Loading group info...</div>;
+  }
+  if (error) {
+    return <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center text-red-600">{error}</div>;
+  }
+  if (!group) {
+    return null;
+  }
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200">
       <div className="relative h-48">
@@ -53,7 +65,7 @@ export default function GroupOverview({ groupId }) {
         />
         <div className={`absolute top-4 left-4 w-4 h-4 rounded-full ${group.color}`}></div>
         <div className="absolute top-4 right-4">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getLevelColor(group.level)}`}>
+          <span className={`px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800`}>
             {group.level}
           </span>
         </div>
@@ -121,4 +133,3 @@ export default function GroupOverview({ groupId }) {
       </div>
     </div>
   );
-}

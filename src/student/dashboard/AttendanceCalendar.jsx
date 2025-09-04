@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useUser } from '../../UserContext';
+import { getHomeworkProgressMy } from '../../progressApi';
 
 export default function AttendanceCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -35,19 +37,29 @@ export default function AttendanceCalendar() {
     };
   }, [isDarkMode]);
 
-  const attendanceData = [
-    { date: '2024-01-15', status: 'present', lesson: 'JavaScript Basics' },
-    { date: '2024-01-17', status: 'present', lesson: 'React Components' },
-    { date: '2024-01-19', status: 'absent', lesson: 'State Management' },
-    { date: '2024-01-22', status: 'present', lesson: 'API Integration' },
-    { date: '2024-01-24', status: 'present', lesson: 'Database Concepts' },
-    { date: '2024-01-26', status: 'late', lesson: 'Authentication' },
-    { date: '2024-01-29', status: 'present', lesson: 'Testing Fundamentals' },
-    { date: '2024-01-31', status: 'present', lesson: 'Deployment' },
-    { date: '2024-08-01', status: 'absent', lesson: 'Advanced JavaScript' },
-    { date: '2024-08-02', status: 'present', lesson: 'React Hooks' },
-    { date: '2024-08-05', status: 'late', lesson: 'State Management' }
-  ];
+  const { token } = useUser();
+  const [attendanceData, setAttendanceData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchAttendance() {
+      if (!token) return;
+      setLoading(true);
+      setError(null);
+      try {
+        // Replace with correct API call for attendance data
+        const progress = await getHomeworkProgressMy(token);
+        // Assume progress.attendance_records is an array of { date, status, lesson }
+        setAttendanceData(progress?.attendance_records || []);
+      } catch (err) {
+        setError('Failed to load attendance data');
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchAttendance();
+  }, [token]);
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
@@ -126,6 +138,12 @@ export default function AttendanceCalendar() {
     late: attendanceData.filter(item => item.status === 'late').length
   };
 
+  if (loading) {
+    return <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border p-6 text-center`}>Loading attendance...</div>;
+  }
+  if (error) {
+    return <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border p-6 text-center text-red-600`}>{error}</div>;
+  }
   return (
     <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
       <div className="p-6">
@@ -138,7 +156,7 @@ export default function AttendanceCalendar() {
             >
               <i className="ri-arrow-left-line w-4 h-4 flex items-center justify-center"></i>
             </button>
-            <h4 className={`text-lg font-medium px-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+            <h4 className={`text-lg font-medium px-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}> 
               {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
             </h4>
             <button
@@ -152,7 +170,7 @@ export default function AttendanceCalendar() {
 
         <div className="grid grid-cols-7 gap-2 mb-4">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className={`text-center text-sm font-medium p-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            <div key={day} className={`text-center text-sm font-medium p-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}> 
               {day}
             </div>
           ))}
@@ -189,22 +207,22 @@ export default function AttendanceCalendar() {
           })}
         </div>
 
-        <div className={`border-t pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+        <div className={`border-t pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}> 
           <h4 className={`text-lg font-medium mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Attendance Summary</h4>
           <div className="grid grid-cols-3 gap-4">
-            <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-green-900/30 border-green-800' : 'bg-green-50 border-green-200'}`}>
+            <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-green-900/30 border-green-800' : 'bg-green-50 border-green-200'}`}> 
               <div className="w-4 h-4 bg-green-500 rounded-full mx-auto mb-2"></div>
               <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Present</p>
               <p className="text-xl font-bold text-green-600">{attendanceStats.present}</p>
             </div>
 
-            <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-orange-900/30 border-orange-800' : 'bg-orange-50 border-orange-200'}`}>
+            <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-orange-900/30 border-orange-800' : 'bg-orange-50 border-orange-200'}`}> 
               <div className="w-4 h-4 bg-orange-500 rounded-full mx-auto mb-2"></div>
               <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Late</p>
               <p className="text-xl font-bold text-orange-600">{attendanceStats.late}</p>
             </div>
 
-            <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-red-900/30 border-red-800' : 'bg-red-50 border-red-200'}`}>
+            <div className={`text-center p-4 rounded-lg border ${isDarkMode ? 'bg-red-900/30 border-red-800' : 'bg-red-50 border-red-200'}`}> 
               <div className="w-4 h-4 bg-red-500 rounded-full mx-auto mb-2"></div>
               <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Absent</p>
               <p className="text-xl font-bold text-red-600">{attendanceStats.absent}</p>

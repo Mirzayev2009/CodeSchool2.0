@@ -7,6 +7,7 @@ import ProfileInfo from './ProfileInfo';
 import AttendanceChart from './AttendanceChart';
 import HomeworkChart from './HomeworkChart';
 
+
 export default function StudentProfile() {
   const [isDarkMode, setIsDarkMode] = useState(false);
 

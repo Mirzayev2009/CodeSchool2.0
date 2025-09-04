@@ -139,7 +139,7 @@ export default function SchedulePage() {
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`} suppressHydrationWarning={true}>
-      <TeacherHeader />
+
       
       <div className="flex">
         <TeacherSidebar />

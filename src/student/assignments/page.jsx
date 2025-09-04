@@ -6,8 +6,12 @@ import { Link } from 'react-router-dom';
 
 import StudentHeader from '../../../components/StudentHeader';
 
+import { getMyHomeworks } from '../../homeworkApi';
+
 export default function StudentAssignments() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [assignments, setAssignments] = useState([]);
+  const token = localStorage.getItem('token')
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('darkMode');
@@ -37,80 +41,93 @@ export default function StudentAssignments() {
     };
   }, [isDarkMode]);
 
-  const assignments = [
-    {
-      id: 1,
-      title: 'JavaScript Variables & Data Types',
-      subject: 'JavaScript Fundamentals',
-      dueDate: '2024-12-25',
-      status: 'pending',
-      difficulty: 'Easy',
-      tasksCount: 10,
-      description: 'Learn the basics of JavaScript variables, data types, and their usage in programming.',
-      teacher: 'Dr. Wilson',
-      points: 100
-    },
-    {
-      id: 2,
-      title: 'React Components & Props',
-      subject: 'React Development',
-      dueDate: '2024-12-28',
-      status: 'in_progress',
-      difficulty: 'Medium',
-      tasksCount: 10,
-      description: 'Build interactive React components and understand how to pass data using props.',
-      teacher: 'Prof. Johnson',
-      points: 150
-    },
-    {
-      id: 3,
-      title: 'Python Functions & Modules',
-      subject: 'Python for Beginners',
-      dueDate: '2024-12-30',
-      status: 'completed',
-      difficulty: 'Easy',
-      tasksCount: 10,
-      description: 'Master Python functions, modules, and code organization techniques.',
-      teacher: 'Dr. Smith',
-      points: 120
-    },
-    {
-      id: 4,
-      title: 'Database Normalization',
-      subject: 'Database Design',
-      dueDate: '2025-01-02',
-      status: 'pending',
-      difficulty: 'Hard',
-      tasksCount: 10,
-      description: 'Learn database normalization techniques and design efficient relational databases.',
-      teacher: 'Prof. Brown',
-      points: 200
-    },
-    {
-      id: 5,
-      title: 'Advanced JavaScript Concepts',
-      subject: 'JavaScript Fundamentals',
-      dueDate: '2025-01-05',
-      status: 'pending',
-      difficulty: 'Hard',
-      tasksCount: 10,
-      description: 'Dive deep into closures, async/await, and advanced JavaScript patterns.',
-      teacher: 'Dr. Wilson',
-      points: 180
-    },
-    {
-      id: 6,
-      title: 'React State Management',
-      subject: 'React Development',
-      dueDate: '2025-01-08',
-      status: 'pending',
-      difficulty: 'Medium',
-      tasksCount: 10,
-      description: 'Learn state management in React using hooks and context API.',
-      teacher: 'Prof. Johnson',
-      points: 160
+  // const assignments = [
+  //   {
+  //     id: 1,
+  //     title: 'JavaScript Variables & Data Types',
+  //     subject: 'JavaScript Fundamentals',
+  //     dueDate: '2024-12-25',
+  //     status: 'pending',
+  //     difficulty: 'Easy',
+  //     tasksCount: 10,
+  //     description: 'Learn the basics of JavaScript variables, data types, and their usage in programming.',
+  //     teacher: 'Dr. Wilson',
+  //     points: 100
+  //   },
+  //   {
+  //     id: 2,
+  //     title: 'React Components & Props',
+  //     subject: 'React Development',
+  //     dueDate: '2024-12-28',
+  //     status: 'in_progress',
+  //     difficulty: 'Medium',
+  //     tasksCount: 10,
+  //     description: 'Build interactive React components and understand how to pass data using props.',
+  //     teacher: 'Prof. Johnson',
+  //     points: 150
+  //   },
+  //   {
+  //     id: 3,
+  //     title: 'Python Functions & Modules',
+  //     subject: 'Python for Beginners',
+  //     dueDate: '2024-12-30',
+  //     status: 'completed',
+  //     difficulty: 'Easy',
+  //     tasksCount: 10,
+  //     description: 'Master Python functions, modules, and code organization techniques.',
+  //     teacher: 'Dr. Smith',
+  //     points: 120
+  //   },
+  //   {
+  //     id: 4,
+  //     title: 'Database Normalization',
+  //     subject: 'Database Design',
+  //     dueDate: '2025-01-02',
+  //     status: 'pending',
+  //     difficulty: 'Hard',
+  //     tasksCount: 10,
+  //     description: 'Learn database normalization techniques and design efficient relational databases.',
+  //     teacher: 'Prof. Brown',
+  //     points: 200
+  //   },
+  //   {
+  //     id: 5,
+  //     title: 'Advanced JavaScript Concepts',
+  //     subject: 'JavaScript Fundamentals',
+  //     dueDate: '2025-01-05',
+  //     status: 'pending',
+  //     difficulty: 'Hard',
+  //     tasksCount: 10,
+  //     description: 'Dive deep into closures, async/await, and advanced JavaScript patterns.',
+  //     teacher: 'Dr. Wilson',
+  //     points: 180
+  //   },
+  //   {
+  //     id: 6,
+  //     title: 'React State Management',
+  //     subject: 'React Development',
+  //     dueDate: '2025-01-08',
+  //     status: 'pending',
+  //     difficulty: 'Medium',
+  //     tasksCount: 10,
+  //     description: 'Learn state management in React using hooks and context API.',
+  //     teacher: 'Prof. Johnson',
+  //     points: 160
+  //   }
+  // ];
+
+  useEffect(()=>{
+    async function fetchAssignments() {
+      try {
+        const data = await getMyHomeworks(token)
+        setAssignments(data.assignments || [])
+
+      } catch (error) {
+        console.error('Failed to fetch assignments:', error)
+      }
     }
-  ];
+    fetchAssignments()
+  }, [token])
 
   const getStatusColor = (status) => {
     switch (status) {

@@ -1,13 +1,11 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
-
-export default function HomeworkDetailClient({ assignmentId, homeworkId }) {
+export default function HomeworkDetailClient({ assignmentId, homeworkId, homework }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [code, setCode] = useState('// Write your solution here\nfunction solve() {\n  \n}');
+  const [code, setCode] = useState(homework.tasks?.[0]?.starterCode || '// Write your solution here');
   const [output, setOutput] = useState('');
   const [isRunning, setIsRunning] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
@@ -19,7 +17,7 @@ export default function HomeworkDetailClient({ assignmentId, homeworkId }) {
     if (savedTheme) {
       setIsDarkMode(savedTheme === 'true');
     }
-    
+
     const handleStorageChange = () => {
       const theme = localStorage.getItem('darkMode');
       setIsDarkMode(theme === 'true');
@@ -29,109 +27,17 @@ export default function HomeworkDetailClient({ assignmentId, homeworkId }) {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Mock homework data
-  const homework = {
-    id: parseInt(homeworkId),
-    title: 'Variables and Data Types',
-    description: 'Learn JavaScript fundamentals',
-    totalTasks: 10,
-    tasks: [
-      {
-        id: 1,
-        title: 'Create Variables',
-        explanation: `In JavaScript, variables are containers for storing data values. You can create variables using <span class="font-black text-black">let</span>, <span class="font-black text-black">const</span>, or <span class="font-black text-black">var</span> keywords.
-
-**Using <span class="font-black text-black">let</span>:**
-<span class="font-black text-black">let</span> allows you to declare variables that can be reassigned later.
-
-Example:
-\`\`\`javascript
-let age = 25;
-let name = "John";
-age = 26; // This is allowed
-\`\`\`
-
-**Using <span class="font-black text-black">const</span>:**
-<span class="font-black text-black">const</span> is used for variables that won't change their value.
-
-Example:
-\`\`\`javascript
-const PI = 3.14159;
-const greeting = "Hello World";
-// PI = 3.14; // This would cause an error
-\`\`\`
-
-**Using <span class="font-black text-black">var</span>:**
-<span class="font-black text-black">var</span> is the older way to declare variables (not recommended in modern JavaScript).
-
-Example:
-\`\`\`javascript
-var oldStyle = "This is old syntax";
-\`\`\`
-
-**Your Task:**
-Create three variables:
-1. A <span class="font-black text-black">let</span> variable called 'userName' with your name
-2. A <span class="font-black text-black">const</span> variable called 'birthYear' with your birth year  
-3. A <span class="font-black text-black">var</span> variable called 'city' with your city name
-
-Then console.log all three variables.`,
-        expectedOutput: 'Variables created successfully',
-        starterCode: '// Create your variables here\n// Remember to use let, const, and var\n\n// Your code goes here'
-      },
-      {
-        id: 2,
-        title: 'Data Types',
-        explanation: `JavaScript has several data types. The main primitive data types are:
-
-**String:** Text data enclosed in quotes
-\`\`\`javascript
-let message = "Hello World";
-let name = 'John Doe';
-\`\`\`
-
-**Number:** Numeric values (integers and decimals)
-\`\`\`javascript
-let age = 25;
-let price = 19.99;
-\`\`\`
-
-**Boolean:** True or false values
-\`\`\`javascript
-let isStudent = true;
-let isWorking = false;
-\`\`\`
-
-**Undefined:** Variables declared but not assigned
-\`\`\`javascript
-let someVariable;
-console.log(someVariable); // undefined
-\`\`\`
-
-**Null:** Intentionally empty value
-\`\`\`javascript
-let emptyValue = null;
-\`\`\`
-
-**Your Task:**
-Create variables of different data types and use typeof to check their types.`,
-        expectedOutput: 'Data types demonstrated',
-        starterCode: '// Create variables of different data types\n// Use typeof to check their types\n\n// Your code goes here'
-      }
-      // Add more tasks as needed
-    ]
-  };
-
-  const currentTaskData = homework.tasks[currentTask - 1] || homework.tasks[0];
+  // pick current task safely
+  const currentTaskData = homework.tasks?.[currentTask - 1] || {};
 
   const runCode = () => {
     setIsRunning(true);
-    
+
     setTimeout(() => {
       try {
-        // Simulate code execution
-        const result = eval(code);
-        setOutput(currentTaskData.expectedOutput);
+        // NOTE: using eval in production is unsafe — replace with API judge later
+        eval(code);
+        setOutput(currentTaskData.expectedOutput || '✅ Task passed');
         setIsCompleted(true);
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);
@@ -145,11 +51,11 @@ Create variables of different data types and use typeof to check their types.`,
 
   const submitHomework = () => {
     console.log('Submitting homework:', { assignmentId, homeworkId, currentTask, code });
-    // Add submission logic here
+    // TODO: send to API
   };
 
   const goToNextTask = () => {
-    if (currentTask < homework.totalTasks) {
+    if (currentTask < (homework.totalTasks || homework.tasks.length)) {
       setCurrentTask(prev => prev + 1);
       setCode(homework.tasks[currentTask]?.starterCode || '// Write your solution here');
       setOutput('');
@@ -168,13 +74,16 @@ Create variables of different data types and use typeof to check their types.`,
     }
   };
 
-  const formatExplanation = (text) => {
-    // Convert **bold** to <strong> and handle code blocks
+  const formatExplanation = (text = '') => {
     return text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/`([^`]+)`/g, '<code class="bg-gray-100 px-1 py-0.5 rounded text-sm">$1</code>')
       .replace(/```javascript\n([\s\S]*?)\n```/g, '<pre class="bg-gray-100 p-3 rounded-lg mt-2 mb-2 text-sm overflow-x-auto"><code>$1</code></pre>');
   };
+
+  // ... keep your JSX the same but now using real `homework` prop
+
+
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>

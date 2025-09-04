@@ -1,95 +1,127 @@
 
 
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { getHomeworkTasks } from '../../homeworkApi';
 
 export default function AssignmentModal({ assignment, onClose, isDarkMode }) {
+  const [homeworkTasks, setHomeworkTasks] = useState([]);
   const [currentTask, setCurrentTask] = useState(1);
+  const token = localStorage.getItem('token')
 
-  const homeworkTasks = [
-    {
-      id: 1,
-      title: 'Variable Declaration',
-      description: 'Create variables using let, const, and var',
-      status: 'completed',
-      explanation: 'Variables are containers that store data values. In JavaScript, you can declare variables using let, const, or var keywords.',
-      code: 'let name = "John";\nconst age = 25;\nvar city = "New York";'
-    },
-    {
-      id: 2,
-      title: 'Data Types',
-      description: 'Work with different JavaScript data types',
-      status: 'completed',
-      explanation: 'JavaScript has several data types including strings, numbers, booleans, objects, and arrays.',
-      code: 'let str = "Hello";\nlet num = 42;\nlet bool = true;\nlet arr = [1, 2, 3];'
-    },
-    {
-      id: 3,
-      title: 'Type Conversion',
-      description: 'Convert between different data types',
-      status: 'in_progress',
-      explanation: 'Type conversion allows you to change one data type to another. This can be done explicitly or implicitly.',
-      code: '// Write your code here\nlet str = "123";\n// Convert str to number\nlet num = ;\n\nconsole.log(typeof num);'
-    },
-    {
-      id: 4,
-      title: 'Variable Scope',
-      description: 'Understand local and global scope',
-      status: 'pending',
-      explanation: 'Scope determines where variables can be accessed in your code. Global scope is accessible everywhere, local scope is limited.',
-      code: '// Complete the function\nfunction scopeExample() {\n  // Add local variable here\n  \n  return localVar;\n}'
-    },
-    {
-      id: 5,
-      title: 'Hoisting',
-      description: 'Learn about variable hoisting behavior',
-      status: 'pending',
-      explanation: 'Hoisting is JavaScript\'s behavior of moving declarations to the top of their scope.',
-      code: '// Fix the hoisting issue\nconsole.log(myVar);\n// Add your variable declaration here'
-    },
-    {
-      id: 6,
-      title: 'Template Literals',
-      description: 'Use template literals for string formatting',
-      status: 'pending',
-      explanation: 'Template literals allow for easier string formatting and multi-line strings using backticks.',
-      code: '// Create a template literal\nlet name = "Alice";\nlet age = 30;\n// Create greeting using template literal'
-    },
-    {
-      id: 7,
-      title: 'Destructuring',
-      description: 'Extract values from arrays and objects',
-      status: 'pending',
-      explanation: 'Destructuring allows you to extract values from arrays or properties from objects into variables.',
-      code: '// Destructure this array\nlet colors = ["red", "green", "blue"];\n// Extract first two colors'
-    },
-    {
-      id: 8,
-      title: 'Default Parameters',
-      description: 'Set default values for function parameters',
-      status: 'pending',
-      explanation: 'Default parameters allow you to set default values for function parameters when no argument is provided.',
-      code: '// Add default parameters\nfunction greet(name, greeting) {\n  return `${greeting}, ${name}!`;\n}'
-    },
-    {
-      id: 9,
-      title: 'Arrow Functions',
-      description: 'Convert regular functions to arrow functions',
-      status: 'pending',
-      explanation: 'Arrow functions provide a shorter syntax for writing functions and have different behavior with "this".',
-      code: '// Convert to arrow function\nfunction add(a, b) {\n  return a + b;\n}'
-    },
-    {
-      id: 10,
-      title: 'Final Challenge',
-      description: 'Combine all concepts in a complete program',
-      status: 'pending',
-      explanation: 'Create a program that uses variables, data types, functions, and all the concepts you\'ve learned.',
-      code: '// Create a student information system\n// Include: name, age, grades array, average calculation'
+
+useEffect(() => {
+  async function fetchTasks() {
+    try {
+      const data = await getHomeworkTasks(assignment.id, token);
+
+      // if backend returns paginated results
+      if (Array.isArray(data)) {
+        setHomeworkTasks(data);
+      } else if (Array.isArray(data.results)) {
+        setHomeworkTasks(data.results);
+      } else {
+        setHomeworkTasks([]); // fallback
+      }
+    } catch (error) {
+      console.error('Failed to fetch homework tasks:', error);
+      setHomeworkTasks([]);
     }
-  ];
+  }
+  fetchTasks();
+}, [assignment.id, token]);
 
-  const currentTaskData = homeworkTasks.find(task => task.id === currentTask) || homeworkTasks[0];
+  
+
+  // const homeworkTasks = [
+  //   {
+  //     id: 1,
+  //     title: 'Variable Declaration',
+  //     description: 'Create variables using let, const, and var',
+  //     status: 'completed',
+  //     explanation: 'Variables are containers that store data values. In JavaScript, you can declare variables using let, const, or var keywords.',
+  //     code: 'let name = "John";\nconst age = 25;\nvar city = "New York";'
+  //   },
+  //   {
+  //     id: 2,
+  //     title: 'Data Types',
+  //     description: 'Work with different JavaScript data types',
+  //     status: 'completed',
+  //     explanation: 'JavaScript has several data types including strings, numbers, booleans, objects, and arrays.',
+  //     code: 'let str = "Hello";\nlet num = 42;\nlet bool = true;\nlet arr = [1, 2, 3];'
+  //   },
+  //   {
+  //     id: 3,
+  //     title: 'Type Conversion',
+  //     description: 'Convert between different data types',
+  //     status: 'in_progress',
+  //     explanation: 'Type conversion allows you to change one data type to another. This can be done explicitly or implicitly.',
+  //     code: '// Write your code here\nlet str = "123";\n// Convert str to number\nlet num = ;\n\nconsole.log(typeof num);'
+  //   },
+  //   {
+  //     id: 4,
+  //     title: 'Variable Scope',
+  //     description: 'Understand local and global scope',
+  //     status: 'pending',
+  //     explanation: 'Scope determines where variables can be accessed in your code. Global scope is accessible everywhere, local scope is limited.',
+  //     code: '// Complete the function\nfunction scopeExample() {\n  // Add local variable here\n  \n  return localVar;\n}'
+  //   },
+  //   {
+  //     id: 5,
+  //     title: 'Hoisting',
+  //     description: 'Learn about variable hoisting behavior',
+  //     status: 'pending',
+  //     explanation: 'Hoisting is JavaScript\'s behavior of moving declarations to the top of their scope.',
+  //     code: '// Fix the hoisting issue\nconsole.log(myVar);\n// Add your variable declaration here'
+  //   },
+  //   {
+  //     id: 6,
+  //     title: 'Template Literals',
+  //     description: 'Use template literals for string formatting',
+  //     status: 'pending',
+  //     explanation: 'Template literals allow for easier string formatting and multi-line strings using backticks.',
+  //     code: '// Create a template literal\nlet name = "Alice";\nlet age = 30;\n// Create greeting using template literal'
+  //   },
+  //   {
+  //     id: 7,
+  //     title: 'Destructuring',
+  //     description: 'Extract values from arrays and objects',
+  //     status: 'pending',
+  //     explanation: 'Destructuring allows you to extract values from arrays or properties from objects into variables.',
+  //     code: '// Destructure this array\nlet colors = ["red", "green", "blue"];\n// Extract first two colors'
+  //   },
+  //   {
+  //     id: 8,
+  //     title: 'Default Parameters',
+  //     description: 'Set default values for function parameters',
+  //     status: 'pending',
+  //     explanation: 'Default parameters allow you to set default values for function parameters when no argument is provided.',
+  //     code: '// Add default parameters\nfunction greet(name, greeting) {\n  return `${greeting}, ${name}!`;\n}'
+  //   },
+  //   {
+  //     id: 9,
+  //     title: 'Arrow Functions',
+  //     description: 'Convert regular functions to arrow functions',
+  //     status: 'pending',
+  //     explanation: 'Arrow functions provide a shorter syntax for writing functions and have different behavior with "this".',
+  //     code: '// Convert to arrow function\nfunction add(a, b) {\n  return a + b;\n}'
+  //   },
+  //   {
+  //     id: 10,
+  //     title: 'Final Challenge',
+  //     description: 'Combine all concepts in a complete program',
+  //     status: 'pending',
+  //     explanation: 'Create a program that uses variables, data types, functions, and all the concepts you\'ve learned.',
+  //     code: '// Create a student information system\n// Include: name, age, grades array, average calculation'
+  //   }
+  // ];
+
+  const currentTaskData = homeworkTasks.find(task => task.id === currentTask) || null;
+
+if (!currentTaskData) {
+  return <div className="p-6 text-center">Loading tasks...</div>;
+}
+
 
   const getStatusColor = (status) => {
     switch (status) {

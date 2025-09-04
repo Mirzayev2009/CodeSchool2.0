@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useUser } from '../../UserContext';
 
 export default function StudentInfo() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -34,13 +35,15 @@ export default function StudentInfo() {
     };
   }, [isDarkMode]);
 
+  const { user } = useUser();
+  // Fallbacks for missing data
   const studentInfo = {
-    name: 'Alex Johnson',
-    email: 'alex.johnson@student.com',
-    phone: '+1 (555) 123-4567',
-    studentId: 'STU-2024-001',
-    enrollmentDate: 'September 2024',
-    level: 'Intermediate'
+    name: user?.name || user?.username || 'Student',
+    email: user?.email || 'N/A',
+    phone: user?.phone || 'N/A',
+    studentId: user?.student_id || user?.id || 'N/A',
+    enrollmentDate: user?.enrollment_date || 'N/A',
+    level: user?.level || 'N/A'
   };
 
   return (

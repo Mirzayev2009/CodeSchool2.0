@@ -1,9 +1,12 @@
 
 
 import { useState, useEffect } from 'react';
+import { useUser } from '../../UserContext';
+
 
 export default function ProfileInfo() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const { user } = useUser();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('darkMode');
@@ -19,24 +22,22 @@ export default function ProfileInfo() {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
-
-  const studentData = {
-    name: 'Alex Johnson',
-    studentId: 'ST2024001',
-    email: 'alex.johnson@codeschool.com',
-    phone: '+1 (555) 123-4567',
-    dateOfBirth: 'March 15, 2002',
-    address: '123 University Ave, Student City, SC 12345',
-    avatar: 'https://readdy.ai/api/search-image?query=professional%20headshot%20of%20young%20college%20student%20with%20friendly%20smile%2C%20modern%20student%20portrait%2C%20clean%20white%20background%2C%20high%20quality%20photography%2C%20natural%20lighting%2C%20confident%20expression&width=150&height=150&seq=student-profile&orientation=squarish',
-    level: 'Intermediate',
-    enrollmentDate: 'September 2023',
-    group: 'Programming Group A',
-    teacher: 'Dr. Sarah Johnson',
-    emergencyContact: {
-      name: 'Sarah Johnson (Mother)',
-      phone: '+1 (555) 987-6543'
-    }
+  const defaultData = {
+    name: 'Guest User',
+    studentId: '---',
+    email: '---',
+    phone: '---',
+    dateOfBirth: '---',
+    address: '---',
+    avatar: 'https://via.placeholder.com/150',
+    level: '---',
+    enrollmentDate: '---',
+    group: '---',
+    teacher: '---',
+    emergencyContact: { name: '---', phone: '---' }
   };
+
+  const studentData = user || defaultData;
 
   return (
     <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>

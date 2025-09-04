@@ -2,131 +2,50 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useUser } from '../../UserContext';
+import { getHomeworks } from '../../homeworkApi';
 
-export default function HomeworkSection({ groupId }) {
+  const { token } = useUser();
+  const [tasks, setTasks] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
   const [codeInput, setCodeInput] = useState('');
   const [textInput, setTextInput] = useState('');
   const [feedback, setFeedback] = useState('');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('darkMode');
     if (savedTheme) {
       setIsDarkMode(savedTheme === 'true');
     }
-    
     const handleStorageChange = () => {
       const theme = localStorage.getItem('darkMode');
       setIsDarkMode(theme === 'true');
     };
-
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const tasks = [
-    {
-      id: '1',
-      title: 'Variable Declaration',
-      description: 'Practice declaring variables using let and const. Create a variable for storing your name and another for your age. Show understanding of when to use let vs const.',
-      type: 'code',
-      points: '10 points',
-      difficulty: 'Easy',
-      correctAnswer: 'let',
-      explanation: 'Variables should be declared with let for mutable values and const for immutable values.'
-    },
-    {
-      id: '2', 
-      title: 'Function Creation',
-      description: 'Write a function called "calculateSum" that takes two parameters (a and b) and returns their sum. Then create an arrow function version called "addNumbers" that does the same thing.',
-      type: 'code',
-      points: '15 points',
-      difficulty: 'Medium',
-      correctAnswer: 'function',
-      explanation: 'Functions can be declared using function keyword or arrow syntax for shorter expressions.'
-    },
-    {
-      id: '3',
-      title: 'Array Methods',
-      description: 'Explain the difference between map(), filter(), and reduce() methods in JavaScript. Provide a simple example for each method showing how they work with an array of numbers.',
-      type: 'text',
-      points: '12 points',
-      difficulty: 'Medium',
-      correctAnswer: 'map',
-      explanation: 'Understanding array methods is crucial for functional programming in JavaScript.'
-    },
-    {
-      id: '4',
-      title: 'Conditional Statements',
-      description: 'Write a function that checks if a number is positive, negative, or zero. Use if-else statements and return appropriate messages for each case.',
-      type: 'code',
-      points: '8 points',
-      difficulty: 'Easy',
-      correctAnswer: 'if',
-      explanation: 'Conditional statements help control program flow based on different conditions.'
-    },
-    {
-      id: '5',
-      title: 'Loops Practice',
-      description: 'Create a for loop that prints numbers from 1 to 10. Then create a while loop that does the same thing. Show the difference between these two loop types.',
-      type: 'code',
-      points: '10 points',
-      difficulty: 'Easy',
-      correctAnswer: 'for',
-      explanation: 'Loops allow you to repeat code execution multiple times with different conditions.'
-    },
-    {
-      id: '6',
-      title: 'Object Creation',
-      description: 'Create a JavaScript object representing a student with properties: name, age, grade, and subjects (array). Then write a method to display the student information.',
-      type: 'code',
-      points: '18 points',
-      difficulty: 'Medium',
-      correctAnswer: 'object',
-      explanation: 'Objects in JavaScript store data in key-value pairs and can contain methods.'
-    },
-    {
-      id: '7',
-      title: 'String Methods',
-      description: 'Demonstrate the use of at least 5 different string methods in JavaScript. Explain what each method does and provide examples with different strings.',
-      type: 'text',
-      points: '14 points',
-      difficulty: 'Medium',
-      correctAnswer: 'string',
-      explanation: 'String methods help manipulate and work with text data in various ways.'
-    },
-    {
-      id: '8',
-      title: 'Error Handling',
-      description: 'Write a function that uses try-catch blocks to handle potential errors. Create a scenario where an error might occur and show how to handle it gracefully.',
-      type: 'code',
-      points: '16 points',
-      difficulty: 'Hard',
-      correctAnswer: 'try',
-      explanation: 'Error handling prevents your program from crashing and provides better user experience.'
-    },
-    {
-      id: '9',
-      title: 'DOM Manipulation',
-      description: 'Explain how to select elements from the DOM using different methods. Describe how to change text content, add/remove classes, and handle events.',
-      type: 'text',
-      points: '20 points',
-      difficulty: 'Hard',
-      correctAnswer: 'dom',
-      explanation: 'DOM manipulation allows JavaScript to interact with HTML elements dynamically.'
-    },
-    {
-      id: '10',
-      title: 'Async Programming',
-      description: 'Create a simple async function that simulates fetching data with setTimeout. Show how to use async/await and explain the difference from Promises.',
-      type: 'code',
-      points: '22 points',
-      difficulty: 'Hard',
-      correctAnswer: 'async',
-      explanation: 'Async programming allows handling time-consuming operations without blocking code execution.'
+  useEffect(() => {
+    async function fetchTasks() {
+      if (!token || !groupId) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getHomeworks(token);
+        // Filter or map homeworks for this group if needed
+        const groupTasks = Array.isArray(data) ? data.filter(hw => hw.group_id === groupId) : [];
+        setTasks(groupTasks);
+      } catch (err) {
+        setError('Failed to load homework tasks');
+      } finally {
+        setLoading(false);
+      }
     }
-  ];
+    fetchTasks();
+  }, [token, groupId]);
 
   const handleTaskClick = (task) => {
     setSelectedTask(task);
@@ -175,39 +94,24 @@ export default function HomeworkSection({ groupId }) {
     }
   };
 
+// Example:
+// let name = 'Your Name';
+// const age = 25;"
+  if (loading) {
+    return <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border p-6 text-center`}>Loading homework tasks...</div>;
+  }
+  if (error) {
+    return <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border p-6 text-center text-red-600`}>{error}</div>;
+  }
   return (
     <>
       <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Today's Lesson</h3>
-            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>JavaScript Basics</span>
+            <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Homework Tasks</h3>
+            <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{tasks.length} tasks</span>
           </div>
-
-          <div className="mb-6">
-            <h4 className={`text-lg font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Introduction to JavaScript Programming</h4>
-            <ul className={`space-y-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-              <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                Understanding variable declaration and data types in JavaScript
-              </li>
-              <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                Learning function creation and different syntax approaches
-              </li>
-              <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                Working with arrays, objects, and their built-in methods
-              </li>
-              <li className="flex items-start">
-                <span className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
-                Implementing control flow with loops and conditional statements
-              </li>
-            </ul>
-          </div>
-
-          <div className={`border-t pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
-            <h4 className={`text-lg font-medium mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Homework Tasks ({tasks.length} Tasks)</h4>
+          <div className={`border-t pt-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}> 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {tasks.map((task, index) => (
                 <button
@@ -221,7 +125,7 @@ export default function HomeworkSection({ groupId }) {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
-                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`text-xs font-medium px-2 py-1 rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}> 
                         Task {index + 1}
                       </span>
                       <span className={`text-xs px-2 py-1 rounded-full ${
@@ -251,13 +155,12 @@ export default function HomeworkSection({ groupId }) {
           </div>
         </div>
       </div>
-
       {/* Task Modal */}
       {selectedTask && (
         <div className="fixed inset-0 bg-black bg-black/50 flex items-center justify-center z-50 p-4">
           <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden`}>
             {/* Header */}
-            <div className={`border-b p-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+            <div className={`border-b p-6 ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}> 
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedTask.title}</h3>
@@ -271,20 +174,18 @@ export default function HomeworkSection({ groupId }) {
                 </button>
               </div>
             </div>
-
             <div className="overflow-y-auto" style={{maxHeight: 'calc(90vh - 140px)'}}>
               {/* Problem Explanation */}
-              <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700 bg-gray-700' : 'border-gray-200 bg-gray-50'}`}>
+              <div className={`p-6 border-b ${isDarkMode ? 'border-gray-700 bg-gray-700' : 'border-gray-200 bg-gray-50'}`}> 
                 <h4 className={`text-lg font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Problem</h4>
                 <p className={isDarkMode ? 'text-gray-300' : 'text-gray-700'}>{selectedTask.description}</p>
               </div>
-
               {/* Code/Text Input */}
               <div className="p-6">
                 <div className="flex items-center justify-between mb-3">
                   <h4 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Your Solution</h4>
                   {selectedTask.type === 'text' && (
-                    <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}> 
                       {(selectedTask.type === 'code' ? codeInput : textInput).length}/500 characters
                     </span>
                   )}
@@ -305,10 +206,7 @@ export default function HomeworkSection({ groupId }) {
                         onChange={(e) => handleInputChange(e.target.value)}
                         className="w-full bg-transparent text-green-400 font-mono text-sm resize-none outline-none placeholder-gray-500"
                         rows={10}
-                        placeholder="// Write your JavaScript code here...
-// Example:
-// let name = 'Your Name';
-// const age = 25;"
+                        placeholder="// Write your JavaScript code here...\n// Example:\n// let name = 'Your Name';\n// const age = 25;"
                       />
                     </div>
                   </div>
@@ -326,7 +224,6 @@ export default function HomeworkSection({ groupId }) {
                     maxLength={500}
                   />
                 )}
-
                 {/* Feedback */}
                 {feedback && (
                   <div className={`mt-4 p-4 rounded-lg ${
@@ -345,9 +242,8 @@ export default function HomeworkSection({ groupId }) {
                 )}
               </div>
             </div>
-
             {/* Footer */}
-            <div className={`border-t p-6 flex items-center justify-between ${isDarkMode ? 'border-gray-700 bg-gray-700' : 'border-gray-200 bg-gray-50'}`}>
+            <div className={`border-t p-6 flex items-center justify-between ${isDarkMode ? 'border-gray-700 bg-gray-700' : 'border-gray-200 bg-gray-50'}`}> 
               <button 
                 onClick={closeTask}
                 className={`px-4 py-2 text-sm rounded-md transition-colors whitespace-nowrap ${isDarkMode ? 'bg-gray-600 text-gray-300 hover:bg-gray-500' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
@@ -366,4 +262,3 @@ export default function HomeworkSection({ groupId }) {
       )}
     </>
   );
-}

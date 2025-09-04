@@ -1,15 +1,20 @@
 
 import { useState, useEffect } from 'react';
+import { useUser } from '../UserContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+
+
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const { login, loading: userLoading, error: userError, user } = useUser();
+    const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const urlParams = new URLSearchParams(location.search);
   const role = urlParams.get('role') || 'student';
 
@@ -41,21 +46,22 @@ export default function LoginPage() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    
-    setTimeout(() => {
-      localStorage.setItem('userRole', role);
-      if (role === 'teacher') {
+    setError('');
+      const success = await login(username, password);
+    setIsLoading(false);
+    if (success && user) {
+      if (user.profile_type === 'teacher') {
         navigate('/teacher/dashboard');
       } else {
         navigate('/student/dashboard');
       }
-    }, 1500);
+    } else if (!success && userError) {
+      setError(userError);
+    }
   };
 
   const isTeacher = role === 'teacher';
-  const demoCredentials = isTeacher 
-    ? { email: 'teacher@codeschool.com', password: 'teacher123' }
-    : { email: 'student@codeschool.com', password: 'student123' };
+    const demoCredentials = { username: 'admin', password: 'admin' };
 
   return (
     <div className={`min-h-screen flex items-center justify-center px-6 ${isDarkMode ? 'bg-gradient-to-br from-gray-900 to-gray-800' : 'bg-gradient-to-br from-blue-50 to-indigo-100'}`}>
@@ -88,28 +94,33 @@ export default function LoginPage() {
 
           <div className={`mb-6 p-4 rounded-lg border ${isTeacher ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-800'}`}>
             <h3 className={`text-sm font-medium mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Demo Credentials:</h3>
-            <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Email: {demoCredentials.email}</p>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Username: {demoCredentials.username}</p>
             <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Password: {demoCredentials.password}</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
+            {(error || userError) && (
+              <div className="mb-2 p-2 rounded bg-red-100 text-red-700 text-sm border border-red-300">
+                {error || userError}
+              </div>
+            )}
             <div>
-              <label htmlFor="email" className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}>
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
-                  isDarkMode 
-                    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
-                    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                }`}
-                placeholder="Enter your email"
-                required
-              />
+                <label htmlFor="username" className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-200' : 'text-gray-700'}`}> 
+                  Username
+                </label>
+                <input
+                  type="text"
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  }`}
+                  placeholder="Enter your username"
+                  required
+                />
             </div>
 
             <div>
@@ -133,14 +144,14 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || userLoading}
               className={`w-full py-3 px-4 rounded-lg text-white font-medium transition-colors whitespace-nowrap cursor-pointer ${
                 isTeacher 
                   ? 'bg-green-600 hover:bg-green-700' 
                   : 'bg-blue-600 hover:bg-blue-700'
               } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              {isLoading ? (
+              {isLoading || userLoading ? (
                 <div className="flex items-center justify-center">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
                   Signing in...

@@ -1,5 +1,13 @@
 // src/App.jsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { isAuthenticated } from './auth';
+// Protected Route wrapper
+function ProtectedRoute({ children }) {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
 
 // Public Pages
 import HomePage from './page';
@@ -13,6 +21,8 @@ import HomeworkList from './student/assignments/[id]/homeworks/page';
 import HomeworkDetailPage from './student/assignments/[id]/homeworks/[homeworkId]/page';
 import StudentGroupDetail from './student/groups/[id]/page';
 import StudentProfile from './student/profile/page';
+import LessonsList from "./student/lessons/List";
+import LessonDetail from "./student/lessons/Detail";
 
 // Teacher Pages
 import TeacherDashboard from './teacher/dashboard/page';
@@ -30,28 +40,24 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
 
-        {/* Student Routes */}
-        <Route path="/student/dashboard" element={<StudentDashboard />} />
-        <Route path="/student/assignments" element={<StudentAssignments />} />
-     <Route
-  path="/student/assignments/:id/homeworks"
-  element={<HomeworkList />}
-/>
 
-<Route
-  path="/student/assignments/:id/homeworks/:homeworkId"
-  element={<HomeworkDetailPage />}
-/>
-        <Route path="/student/groups/:id" element={<StudentGroupDetail />} />
-        <Route path="/student/profile" element={<StudentProfile />} />
+  {/* Student Routes (Protected) */}
+  <Route path="/student/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+  <Route path="/student/assignments" element={<ProtectedRoute><StudentAssignments /></ProtectedRoute>} />
+  <Route path="/student/assignments/:id/homeworks" element={<ProtectedRoute><HomeworkList /></ProtectedRoute>} />
+  <Route path="/student/assignments/:id/homeworks/:homeworkId" element={<ProtectedRoute><HomeworkDetailPage /></ProtectedRoute>} />
+  <Route path="/student/groups/:id" element={<ProtectedRoute><StudentGroupDetail /></ProtectedRoute>} />
+  <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
+  <Route path="/student/lessons" element={<LessonsList />} />
+        <Route path="/student/lessons/:id" element={<LessonDetail />} />
 
-        {/* Teacher Routes */}
-        <Route path="/teacher/dashboard" element={<TeacherDashboard />} />
-        <Route path="/teacher/groups" element={<TeacherGroups />} />
-        <Route path="/teacher/groups/:id" element={<TeacherGroupPage />} />
-        <Route path="/teacher/schedule" element={<TeacherSchedule />} />
-        <Route path="/teacher/students" element={<TeacherStudents />} />
-        <Route path="/teacher/settings" element={<TeacherSettings />} />
+  {/* Teacher Routes (Protected) */}
+  <Route path="/teacher/dashboard" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
+  <Route path="/teacher/groups" element={<ProtectedRoute><TeacherGroups /></ProtectedRoute>} />
+  <Route path="/teacher/groups/:id" element={<ProtectedRoute><TeacherGroupPage /></ProtectedRoute>} />
+  <Route path="/teacher/schedule" element={<ProtectedRoute><TeacherSchedule /></ProtectedRoute>} />
+  <Route path="/teacher/students" element={<ProtectedRoute><TeacherStudents /></ProtectedRoute>} />
+  <Route path="/teacher/settings" element={<ProtectedRoute><TeacherSettings /></ProtectedRoute>} />
 
         {/* 404 Page */}
         <Route path="*" element={<NotFound />} />

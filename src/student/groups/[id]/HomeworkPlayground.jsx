@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useUser } from '../../../UserContext';
+import { getHomeworks } from '../../../homeworkApi';
 
 export default function HomeworkPlayground({ groupId }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -9,18 +11,19 @@ export default function HomeworkPlayground({ groupId }) {
   const [userInput, setUserInput] = useState('');
   const [feedback, setFeedback] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [homeworkTasks, setHomeworkTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('darkMode');
     if (savedTheme) {
       setIsDarkMode(savedTheme === 'true');
     }
-    
     const handleStorageChange = () => {
       const theme = localStorage.getItem('darkMode');
       setIsDarkMode(theme === 'true');
     };
-
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
@@ -45,118 +48,26 @@ export default function HomeworkPlayground({ groupId }) {
     }
   }, [selectedTask, groupId]);
 
-  const homeworkTasks = [
-    {
-      id: 1,
-      title: 'Variables and Data Types',
-      type: 'code',
-      difficulty: 'Easy',
-      dueDate: '2024-12-25',
-      description: 'Create variables for different data types and display them in the console. You need to create at least 4 different variables: string, number, boolean, and array.',
-      expectedOutput: 'console.log',
-      correctAnswer: 'let name = "John"; let age = 25; let isStudent = true; let hobbies = ["reading", "coding"]; console.log(name, age, isStudent, hobbies);',
-      points: 10
-    },
-    {
-      id: 2,
-      title: 'Function Creation',
-      type: 'code',
-      difficulty: 'Medium',
-      dueDate: '2024-12-26',
-      description: 'Write a function called "calculateSum" that takes two parameters and returns their sum. The function should handle both numbers and strings that can be converted to numbers.',
-      expectedOutput: 'function calculateSum',
-      correctAnswer: 'function calculateSum(a, b) { return Number(a) + Number(b); }',
-      points: 15
-    },
-    {
-      id: 3,
-      title: 'Array Methods',
-      type: 'code',
-      difficulty: 'Medium',
-      dueDate: '2024-12-27',
-      description: 'Create an array of numbers [1, 2, 3, 4, 5] and use array methods to: 1) Add number 6 to the end, 2) Remove the first element, 3) Find the sum of all elements using reduce method.',
-      expectedOutput: 'reduce',
-      correctAnswer: 'let arr = [1, 2, 3, 4, 5]; arr.push(6); arr.shift(); let sum = arr.reduce((a, b) => a + b, 0);',
-      points: 20
-    },
-    {
-      id: 4,
-      title: 'Object Properties',
-      type: 'code',
-      difficulty: 'Easy',
-      dueDate: '2024-12-28',
-      description: 'Create an object called "student" with properties: name, age, grade, and subjects (array). Then access and log each property to the console.',
-      expectedOutput: 'student',
-      correctAnswer: 'let student = { name: "Alice", age: 20, grade: "A", subjects: ["Math", "Science"] }; console.log(student.name, student.age, student.grade, student.subjects);',
-      points: 12
-    },
-    {
-      id: 5,
-      title: 'Conditional Logic',
-      type: 'code',
-      difficulty: 'Medium',
-      dueDate: '2024-12-29',
-      description: 'Write a function that takes a number as parameter and returns "positive", "negative", or "zero" based on the number value. Use if-else statements.',
-      expectedOutput: 'positive',
-      correctAnswer: 'function checkNumber(num) { if (num > 0) return "positive"; else if (num < 0) return "negative"; else return "zero"; }',
-      points: 15
-    },
-    {
-      id: 6,
-      title: 'Loop Implementation',
-      type: 'code',
-      difficulty: 'Hard',
-      dueDate: '2024-12-30',
-      description: 'Create a for loop that prints numbers from 1 to 10, but skip number 5 and stop at number 8. Use continue and break statements appropriately.',
-      expectedOutput: 'for',
-      correctAnswer: 'for (let i = 1; i <= 10; i++) { if (i === 5) continue; if (i > 8) break; console.log(i); }',
-      points: 25
-    },
-    {
-      id: 7,
-      title: 'JavaScript Concepts',
-      type: 'text',
-      difficulty: 'Easy',
-      dueDate: '2024-12-31',
-      description: 'Explain the difference between "let", "const", and "var" in JavaScript. Describe when you would use each one and provide examples.',
-      expectedOutput: 'let const var',
-      correctAnswer: 'let is block-scoped and can be reassigned, const is block-scoped and cannot be reassigned, var is function-scoped and can be reassigned',
-      points: 10
-    },
-    {
-      id: 8,
-      title: 'Event Handling',
-      type: 'code',
-      difficulty: 'Medium',
-      dueDate: '2025-01-01',
-      description: 'Create a button click event handler that changes the text content of a paragraph element. Use addEventListener method.',
-      expectedOutput: 'addEventListener',
-      correctAnswer: 'document.getElementById("myButton").addEventListener("click", function() { document.getElementById("myParagraph").textContent = "Button clicked!"; });',
-      points: 18
-    },
-    {
-      id: 9,
-      title: 'Error Handling',
-      type: 'code',
-      difficulty: 'Hard',
-      dueDate: '2025-01-02',
-      description: 'Write a try-catch block that attempts to parse a JSON string. If parsing fails, catch the error and return a default object with name: "Unknown".',
-      expectedOutput: 'try catch',
-      correctAnswer: 'try { let data = JSON.parse(jsonString); return data; } catch (error) { return { name: "Unknown" }; }',
-      points: 22
-    },
-    {
-      id: 10,
-      title: 'Algorithm Thinking',
-      type: 'text',
-      difficulty: 'Hard',
-      dueDate: '2025-01-03',
-      description: 'Describe the steps to find the largest number in an array without using built-in Math.max() function. Write the algorithm in plain English.',
-      expectedOutput: 'largest array algorithm',
-      correctAnswer: 'Initialize a variable to store the largest number with the first array element. Loop through the remaining elements. Compare each element with the current largest. If current element is larger, update the largest variable. Return the largest number.',
-      points: 20
+  const { token } = useUser();
+
+  useEffect(() => {
+    async function fetchHomeworks() {
+      if (!token || !groupId) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getHomeworks(token, groupId);
+        // If your API returns all homeworks, filter by groupId
+        const groupTasks = Array.isArray(data) ? data.filter(hw => hw.group_id === groupId) : [];
+        setHomeworkTasks(groupTasks);
+      } catch (err) {
+        setError('Failed to load homework tasks');
+      } finally {
+        setLoading(false);
+      }
     }
-  ];
+    fetchHomeworks();
+  }, [token, groupId]);
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
@@ -169,26 +80,20 @@ export default function HomeworkPlayground({ groupId }) {
 
   const checkAnswer = () => {
     setIsSubmitting(true);
-    
     setTimeout(() => {
       const task = selectedTask;
       let isCorrect = false;
-      
+      // Use backend model fields for answer validation
       if (task.type === 'code') {
-        // Check if user input contains expected keywords or patterns
         const userCode = userInput.toLowerCase().trim();
-        const expectedKeywords = task.expectedOutput.toLowerCase().split(' ');
+        const expectedKeywords = (task.expected_output || '').toLowerCase().split(' ');
         const hasExpectedContent = expectedKeywords.some(keyword => userCode.includes(keyword));
-        
-        // Simple keyword matching for demo purposes
         isCorrect = hasExpectedContent && userInput.length > 10;
       } else {
-        // Text answer checking
         const userAnswer = userInput.toLowerCase().trim();
-        const expectedKeywords = task.expectedOutput.toLowerCase().split(' ');
+        const expectedKeywords = (task.expected_output || '').toLowerCase().split(' ');
         isCorrect = expectedKeywords.some(keyword => userAnswer.includes(keyword)) && userInput.length > 20;
       }
-      
       setFeedback({
         isCorrect,
         message: isCorrect 
@@ -196,22 +101,28 @@ export default function HomeworkPlayground({ groupId }) {
           : "❌ Incorrect. Please check your solution and try again.",
         points: isCorrect ? task.points : 0
       });
-      
       setIsSubmitting(false);
-      
-      // Clear draft if correct
       if (isCorrect) {
         localStorage.removeItem(`draft_${groupId}_${selectedTask.id}`);
       }
     }, 1500);
   };
 
-  const closeTask = () => {
-    setSelectedTask(null);
-    setUserInput('');
-    setFeedback(null);
-  };
-
+  // ...existing code...
+  if (loading) {
+    return (
+      <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border p-6 text-center`}>
+        Loading homework tasks...
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border p-6 text-center text-red-600`}>
+        {error}
+      </div>
+    );
+  }
   if (selectedTask) {
     return (
       <div className="fixed inset-0 bg-black bg-black/50 flex items-center justify-center z-50 p-4">
@@ -228,7 +139,7 @@ export default function HomeworkPlayground({ groupId }) {
                     {selectedTask.difficulty}
                   </span>
                   <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                    Due: {selectedTask.dueDate}
+                    Due: {selectedTask.due_date}
                   </span>
                   <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                     {selectedTask.points} points
@@ -242,7 +153,6 @@ export default function HomeworkPlayground({ groupId }) {
                   </span>
                 </div>
               </div>
-              
               <button
                 onClick={closeTask}
                 className={`p-2 rounded-full transition-colors ${isDarkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'}`}
@@ -251,7 +161,6 @@ export default function HomeworkPlayground({ groupId }) {
               </button>
             </div>
           </div>
-
           {/* Content */}
           <div className="flex-1 flex flex-col min-h-0">
             {/* Task Description */}
@@ -260,19 +169,6 @@ export default function HomeworkPlayground({ groupId }) {
               <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'} leading-relaxed`}>
                 {selectedTask.description}
               </p>
-            </div>
-
-            {/* Code Editor / Text Input */}
-            <div className="flex-1 p-6 min-h-0">
-              <div className="flex items-center justify-between mb-4">
-                <h4 className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                  Your {selectedTask.type === 'code' ? 'Code' : 'Answer'}:
-                </h4>
-                <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                  {selectedTask.type === 'text' && `${userInput.length}/500 characters`}
-                </span>
-              </div>
-              
               {selectedTask.type === 'code' ? (
                 <div className={`border rounded-lg overflow-hidden ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
                   <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'} px-4 py-2 border-b ${isDarkMode ? 'border-gray-600' : 'border-gray-300'}`}>
@@ -307,7 +203,6 @@ export default function HomeworkPlayground({ groupId }) {
                 />
               )}
             </div>
-
             {/* Feedback */}
             {feedback && (
               <div className={`mx-6 mb-4 p-4 rounded-lg ${
@@ -325,14 +220,12 @@ export default function HomeworkPlayground({ groupId }) {
                 </div>
               </div>
             )}
-
             {/* Footer */}
             <div className={`border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'} p-6 flex items-center justify-between`}>
               <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                <i className="ri-save-line w-4 h-4 flex items-center justify-center mr-1 inline-flex"></i>
+                <i className="ri-save-line w-4 h-4 items-center justify-center mr-1"></i>
                 Draft saved automatically
               </div>
-              
               <div className="flex items-center space-x-3">
                 <button
                   onClick={closeTask}
@@ -344,7 +237,6 @@ export default function HomeworkPlayground({ groupId }) {
                 >
                   Close
                 </button>
-                
                 <button
                   onClick={checkAnswer}
                   disabled={isSubmitting || !userInput.trim()}
@@ -359,7 +251,6 @@ export default function HomeworkPlayground({ groupId }) {
       </div>
     );
   }
-
   return (
     <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border p-6`}>
       <div className="flex items-center justify-between mb-6">
@@ -368,7 +259,6 @@ export default function HomeworkPlayground({ groupId }) {
           {homeworkTasks.length} tasks available
         </span>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {homeworkTasks.map((task) => (
           <button
@@ -386,11 +276,9 @@ export default function HomeworkPlayground({ groupId }) {
                 {task.difficulty}
               </span>
             </div>
-            
             <p className={`text-sm mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              {task.description.slice(0, 80)}...
+              {task.description?.slice(0, 80)}...
             </p>
-            
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3 text-xs">
                 <span className={`px-2 py-1 rounded ${
@@ -401,10 +289,9 @@ export default function HomeworkPlayground({ groupId }) {
                   {task.type === 'code' ? 'Code' : 'Text'}
                 </span>
                 <span className={isDarkMode ? 'text-gray-400' : 'text-gray-600'}>
-                  Due: {task.dueDate}
+                  Due: {task.due_date}
                 </span>
               </div>
-              
               <div className="flex items-center space-x-2">
                 <span className={`text-xs font-semibold ${isDarkMode ? 'text-green-400' : 'text-green-600'}`}>
                   {task.points} pts
@@ -418,3 +305,8 @@ export default function HomeworkPlayground({ groupId }) {
     </div>
   );
 }
+
+
+
+
+

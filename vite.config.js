@@ -6,10 +6,10 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './code1/app'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
-  server: {
-    historyApiFallback: true,
-  },
+  // server: {
+  //   historyApiFallback: true,
+  // },
 });
