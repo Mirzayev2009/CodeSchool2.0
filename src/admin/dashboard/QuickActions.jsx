@@ -1,45 +1,34 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
+
 
 export default function QuickActions() {
   const actions = [
     {
       name: 'Add New Student',
-      href: '/admin/students/add',
+      to: '/admin/students/add',
       icon: 'ri-user-add-line',
       color: 'blue'
     },
     {
       name: 'Add New Teacher',
-      href: '/admin/teachers/add',
+      to: '/admin/teachers/add',
       icon: 'ri-user-star-line',
       color: 'green'
     },
     {
       name: 'Create New Class',
-      href: '/admin/groups/add',
+      to: '/admin/classes/create',
       icon: 'ri-group-line',
       color: 'purple'
     },
     {
-      name: 'Schedule Lesson',
-      href: '/admin/schedule/add',
+      name: 'Create Course',
+      to: '/admin/courses/create',
       icon: 'ri-calendar-event-line',
       color: 'orange'
     },
-    {
-      name: 'Send Announcement',
-      href: '/admin/announcements/add',
-      icon: 'ri-megaphone-line',
-      color: 'red'
-    },
-    {
-      name: 'Generate Report',
-      href: '/admin/reports',
-      icon: 'ri-file-chart-line',
-      color: 'indigo'
-    }
   ];
 
   const colorClasses = {
@@ -59,7 +48,7 @@ export default function QuickActions() {
         {actions.map((action) => (
           <Link
             key={action.name}
-            href={action.href}
+            to={action.to}
             className={`flex items-center w-full p-3 rounded-lg transition-colors ${colorClasses[action.color]}`}
           >
             <i className={`${action.icon} w-5 h-5 flex items-center justify-center mr-3`}></i>

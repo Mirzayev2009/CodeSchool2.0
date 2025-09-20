@@ -1,7 +1,7 @@
 
 
 import { useState, useEffect } from 'react';
-import { useUser } from '../../UserContext';
+import { useUser } from '../../../UserContext';
 import { getLesson } from '../../lessonApi';
 
 

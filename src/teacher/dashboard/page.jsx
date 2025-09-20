@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { logout } from '../../auth';
+import { useUser } from '../../UserContext';
 import TeacherSidebar from '../../../components/TeacherSidebar';
 import TeacherTopBar from '../../../components/TeacherTopBar';
 import QuickStats from './QuickStats';
@@ -12,6 +12,7 @@ export default function TeacherDashboard() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // 👈 sidebar toggle state
   const navigate = useNavigate();
+  const { logout } = useUser();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('darkMode');
@@ -56,7 +57,7 @@ export default function TeacherDashboard() {
 
           {/* Logout button */}
           <button
-            onClick={() => { logout(); navigate('/login?role=teacher'); }}
+            onClick={() => { logout(); navigate('/login?role=teacher&loggedout=true'); }}
             className="px-3 py-2 sm:px-4 sm:py-2 rounded-lg bg-red-600 text-white text-sm sm:text-base font-medium hover:bg-red-700 transition-colors"
           >
             Logout

@@ -1,86 +1,32 @@
+// src/admin/students/StudentsTable.jsx
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import React, { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 
-export default function StudentsTable({ searchTerm, filterClass, filterStatus }) {
-  const [students] = useState([
-    {
-      id: 1,
-      name: 'Sarah Johnson',
-      email: 'sarah.johnson@email.com',
-      phone: '+1 (555) 123-4567',
-      class: 'JavaScript Fundamentals',
-      enrollmentDate: '2024-09-15',
-      status: 'Active',
-      attendance: '95%',
-      grades: 'A-'
-    },
-    {
-      id: 2,
-      name: 'Michael Chen',
-      email: 'michael.chen@email.com',
-      phone: '+1 (555) 234-5678',
-      class: 'React Advanced',
-      enrollmentDate: '2024-08-20',
-      status: 'Active',
-      attendance: '88%',
-      grades: 'B+'
-    },
-    {
-      id: 3,
-      name: 'Emily Davis',
-      email: 'emily.davis@email.com',
-      phone: '+1 (555) 345-6789',
-      class: 'Python Basics',
-      enrollmentDate: '2024-10-01',
-      status: 'Active',
-      attendance: '92%',
-      grades: 'A'
-    },
-    {
-      id: 4,
-      name: 'David Wilson',
-      email: 'david.wilson@email.com',
-      phone: '+1 (555) 456-7890',
-      class: 'Web Development',
-      enrollmentDate: '2024-07-10',
-      status: 'Inactive',
-      attendance: '76%',
-      grades: 'C+'
-    },
-    {
-      id: 5,
-      name: 'Lisa Rodriguez',
-      email: 'lisa.rodriguez@email.com',
-      phone: '+1 (555) 567-8901',
-      class: 'Data Structures',
-      enrollmentDate: '2024-09-28',
-      status: 'Active',
-      attendance: '98%',
-      grades: 'A+'
-    },
-    {
-      id: 6,
-      name: 'James Anderson',
-      email: 'james.anderson@email.com',
-      phone: '+1 (555) 678-9012',
-      class: 'JavaScript Fundamentals',
-      enrollmentDate: '2024-10-15',
-      status: 'Active',
-      attendance: '85%',
-      grades: 'B'
-    }
-  ]);
+export default function StudentsTable({
+  searchTerm,
+  filterClass,
+  filterStatus,
+  students = [],
+  loading = false,
+  onDelete = () => {},
+  onToggleStatus = () => {},
+  refresh = () => {},
+}) {
+  const filteredStudents = useMemo(() => {
+    const q = (searchTerm ?? '').toLowerCase();
+    return (students ?? []).filter((student) => {
+      const matchesSearch =
+        (student.name ?? '').toLowerCase().includes(q) ||
+        (student.email ?? '').toLowerCase().includes(q);
 
-  const filteredStudents = students.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesClass = filterClass === '' || student.class === filterClass;
-    const matchesStatus = filterStatus === '' || student.status === filterStatus;
-    
-    return matchesSearch && matchesClass && matchesStatus;
-  });
+      const matchesClass = (filterClass ?? '') === '' || (student.class ?? '') === filterClass;
+      const matchesStatus = (filterStatus ?? '') === '' || (student.status ?? '') === filterStatus;
+
+      return matchesSearch && matchesClass && matchesStatus;
+    });
+  }, [students, searchTerm, filterClass, filterStatus]);
 
   const getStatusBadge = (status) => {
     return status === 'Active'
@@ -89,14 +35,22 @@ export default function StudentsTable({ searchTerm, filterClass, filterStatus })
   };
 
   const getGradeBadge = (grade) => {
-    if (grade.startsWith('A')) return 'bg-green-100 text-green-800';
-    if (grade.startsWith('B')) return 'bg-blue-100 text-blue-800';
-    if (grade.startsWith('C')) return 'bg-yellow-100 text-yellow-800';
+    if (!grade) return 'bg-gray-100 text-gray-800';
+    if (String(grade).startsWith('A')) return 'bg-green-100 text-green-800';
+    if (String(grade).startsWith('B')) return 'bg-blue-100 text-blue-800';
+    if (String(grade).startsWith('C')) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
   };
 
   return (
     <div className="overflow-x-auto">
+      <div className="p-4 flex items-center justify-between gap-3">
+        <div className="text-sm text-gray-500">{loading ? 'Loading...' : `${filteredStudents.length} student(s)`}</div>
+        <div className="flex items-center gap-2">
+          <button onClick={refresh} className="px-3 py-2 bg-gray-100 rounded-md text-sm">Refresh</button>
+        </div>
+      </div>
+
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
@@ -130,7 +84,7 @@ export default function StudentsTable({ searchTerm, filterClass, filterStatus })
                 <div className="flex items-center">
                   <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
                     <span className="text-purple-600 font-semibold text-sm">
-                      {student.name.split(' ').map(n => n[0]).join('')}
+                      {String(student.name || '').split(' ').map(n => n?.[0] ?? '').join('')}
                     </span>
                   </div>
                   <div className="ml-4">
@@ -150,6 +104,14 @@ export default function StudentsTable({ searchTerm, filterClass, filterStatus })
                 <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadge(student.status)}`}>
                   {student.status}
                 </span>
+                <div className="mt-2">
+                  <button
+                    onClick={() => onToggleStatus(student)}
+                    className="mt-1 text-xs px-2 py-1 border rounded-md"
+                  >
+                    Toggle status
+                  </button>
+                </div>
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm text-gray-900">{student.attendance}</div>
@@ -162,18 +124,21 @@ export default function StudentsTable({ searchTerm, filterClass, filterStatus })
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div className="flex space-x-2">
                   <Link
-                    href={`/admin/students/${student.id}`}
+                    to={`/admin/students/${student.id}`}
                     className="text-purple-600 hover:text-purple-900"
                   >
                     <i className="ri-eye-line w-4 h-4 flex items-center justify-center"></i>
                   </Link>
                   <Link
-                    href={`/admin/students/${student.id}/edit`}
+                    to={`/admin/students/${student.id}/edit`}
                     className="text-blue-600 hover:text-blue-900"
                   >
                     <i className="ri-edit-line w-4 h-4 flex items-center justify-center"></i>
                   </Link>
-                  <button className="text-red-600 hover:text-red-900">
+                  <button
+                    onClick={() => onDelete(student.id)}
+                    className="text-red-600 hover:text-red-900"
+                  >
                     <i className="ri-delete-bin-line w-4 h-4 flex items-center justify-center"></i>
                   </button>
                 </div>
@@ -182,8 +147,8 @@ export default function StudentsTable({ searchTerm, filterClass, filterStatus })
           ))}
         </tbody>
       </table>
-      
-      {filteredStudents.length === 0 && (
+
+      {filteredStudents.length === 0 && !loading && (
         <div className="text-center py-12">
           <i className="ri-user-search-line w-12 h-12 flex items-center justify-center text-gray-400 mx-auto mb-4"></i>
           <p className="text-gray-500">No students found matching your criteria</p>

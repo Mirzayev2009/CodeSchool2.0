@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useUser } from '../../UserContext';
-import { getHomeworkProgressMy } from '../../progressApi';
+import { getAttendanceByStudent } from '../../attendance';
 
 export default function AttendanceCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -41,25 +41,38 @@ export default function AttendanceCalendar() {
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+useEffect(() => {
+  async function fetchAttendance() {
+    if (!token) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      const studentId = user?.id;
+      if (!studentId) throw new Error('No student ID');
 
-  useEffect(() => {
-    async function fetchAttendance() {
-      if (!token) return;
-      setLoading(true);
-      setError(null);
-      try {
-        // Replace with correct API call for attendance data
-        const progress = await getHomeworkProgressMy(token);
-        // Assume progress.attendance_records is an array of { date, status, lesson }
-        setAttendanceData(progress?.attendance_records || []);
-      } catch (err) {
-        setError('Failed to load attendance data');
-      } finally {
-        setLoading(false);
+      const result = await getAttendanceByStudent(studentId, token);
+
+      // ✅ ensure we always set an array
+      if (Array.isArray(result)) {
+        setAttendanceData(result);
+      } else if (Array.isArray(result?.data)) {
+        setAttendanceData(result.data);
+      } else {
+        setAttendanceData([]);
       }
+    } catch (err) {
+      console.error(err);
+      setError('Failed to load attendance data');
+    } finally {
+      setLoading(false);
     }
-    fetchAttendance();
-  }, [token]);
+  }
+  fetchAttendance();
+}, [token]);
+
+  console.log(attendanceData);
+  
 
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();

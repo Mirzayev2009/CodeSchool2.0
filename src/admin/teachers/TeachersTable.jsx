@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
+
 
 export default function TeachersTable() {
   const [teachers] = useState([
@@ -138,7 +139,7 @@ export default function TeachersTable() {
               <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div className="flex space-x-2">
                   <Link
-                    href={`/admin/teachers/${teacher.id}`}
+                    to={`/admin/teachers/${teacher.id}`}
                     className="text-green-600 hover:text-green-900"
                   >
                     <i className="ri-eye-line w-4 h-4 flex items-center justify-center"></i>

@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect } from 'react';
 import { useUser } from '../UserContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -16,7 +17,8 @@ export default function LoginPage() {
   const location = useLocation();
 
   const urlParams = new URLSearchParams(location.search);
-  const role = urlParams.get('role') || 'student';
+  const role = urlParams.get('role') || 'teacher'; // default to teacher
+  const justLoggedOut = urlParams.get('loggedout') === 'true';
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('darkMode');
@@ -47,18 +49,36 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     setError('');
-      const success = await login(username, password);
+    await login(username, password);
     setIsLoading(false);
-    if (success && user) {
-      if (user.profile_type === 'teacher') {
-        navigate('/teacher/dashboard');
-      } else {
-        navigate('/student/dashboard');
-      }
-    } else if (!success && userError) {
-      setError(userError);
-    }
+    // Navigation will be handled by useEffect below
   };
+
+  // Redirect after successful login, but not if just logged out or switched role
+  useEffect(() => {
+    if (user) {
+      console.log('User after login:', user);
+    }
+    if (user) {
+      // Remove 'loggedout' from URL before redirecting
+      if (justLoggedOut) {
+        const params = new URLSearchParams(location.search);
+        params.delete('loggedout');
+        const newSearch = params.toString();
+        navigate(`/login?${newSearch}`, { replace: true });
+        return;
+      }
+      if (role === 'teacher' && user.profile_type === 'teacher') {
+        navigate('/teacher/dashboard', { replace: true });
+      } else if (role === 'student' && user.profile_type === 'student') {
+        navigate('/student/dashboard', { replace: true });
+      } else if (user.profile_type === 'teacher') {
+        navigate('/teacher/dashboard', { replace: true });
+      } else {
+        navigate('/student/dashboard', { replace: true });
+      }
+    }
+  }, [user, navigate, role, justLoggedOut, location.search]);
 
   const isTeacher = role === 'teacher';
     const demoCredentials = { username: 'admin', password: 'admin' };
@@ -168,7 +188,12 @@ export default function LoginPage() {
                 Looking for {isTeacher ? 'student' : 'teacher'} login?
               </p>
               <button
-                onClick={() => navigate(`/login?role=${isTeacher ? 'student' : 'teacher'}`)}
+                onClick={() => {
+                  // When switching role, clear user/token and go to login with ?loggedout=true
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                  navigate(`/login?role=${isTeacher ? 'student' : 'teacher'}&loggedout=true`);
+                }}
                 className={`inline-flex items-center px-4 py-2 border rounded-lg text-sm font-medium transition-colors whitespace-nowrap cursor-pointer ${
                   isDarkMode 
                     ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 

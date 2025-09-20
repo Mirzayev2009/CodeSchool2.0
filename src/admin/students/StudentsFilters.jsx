@@ -1,13 +1,17 @@
+// src/admin/students/StudentsFilters.jsx
 'use client';
 
-export default function StudentsFilters({ 
-  searchTerm, 
-  setSearchTerm, 
-  filterClass, 
-  setFilterClass, 
-  filterStatus, 
-  setFilterStatus 
+import React from 'react';
+
+export default function StudentsFilters({
+  searchTerm,
+  setSearchTerm,
+  filterClass,
+  setFilterClass,
+  filterStatus,
+  setFilterStatus
 }) {
+  // keep the same static classes/statuses so UI does not change
   const classes = [
     'JavaScript Fundamentals',
     'React Advanced',
@@ -34,7 +38,7 @@ export default function StudentsFilters({
             />
           </div>
         </div>
-        
+
         <div>
           <select
             value={filterClass}
@@ -47,7 +51,7 @@ export default function StudentsFilters({
             ))}
           </select>
         </div>
-        
+
         <div>
           <select
             value={filterStatus}

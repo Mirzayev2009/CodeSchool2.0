@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useUser } from '../../UserContext';
 import { Link } from 'react-router-dom';
 
 export default function GroupsList() {
@@ -20,49 +21,37 @@ export default function GroupsList() {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const groups = [
-    {
-      id: '1',
-      name: 'JavaScript Fundamentals',
-      subject: 'Programming',
-      students: 28,
-      nextClass: '09:00 - 10:30',
-      room: 'Room A-205'
-    },
-    {
-      id: '2',
-      name: 'React Development',
-      subject: 'Web Development',
-      students: 24,
-      nextClass: '11:00 - 12:30',
-      room: 'Computer Lab 1'
-    },
-    {
-      id: '3',
-      name: 'Python for Beginners',
-      subject: 'Programming',
-      students: 32,
-      nextClass: '14:00 - 15:30',
-      room: 'Room B-101'
-    },
-    {
-      id: '4',
-      name: 'Database Design',
-      subject: 'Data Management',
-      students: 20,
-      nextClass: '16:00 - 17:30',
-      room: 'Room A-301'
-    },
-    {
-      id: '5',
-      name: 'Algorithm Design',
-      subject: 'Programming',
-      students: 22,
-      nextClass: '10:00 - 11:30',
-      room: 'Room B-201'
-    }
-  ];
+  const { token } = useUser();
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    async function fetchGroups() {
+      setLoading(true);
+      setError(null);
+      try {
+  const res = await fetch('https://sanjar1718.pythonanywhere.com/api/auth/groups/', {
+          headers: { 'Authorization': `Token ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed to fetch groups');
+        const data = await res.json();
+        setGroups(data || []);
+      } catch (err) {
+        setError('Failed to load groups');
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (token) fetchGroups();
+  }, [token]);
+
+  if (loading) {
+    return <div className={isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}>Loading groups...</div>;
+  }
+  if (error) {
+    return <div className={isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}>{error}</div>;
+  }
   return (
     <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
       <div className="p-6">
@@ -88,26 +77,24 @@ export default function GroupsList() {
                       {group.name}
                     </h3>
                     <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      {group.students} students
+                      {group.students_count || group.students?.length || 0} students
                     </span>
                   </div>
-                  
                   <div className="flex items-center space-x-6 text-sm">
                     <span className={`flex items-center ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       <i className="ri-book-line w-4 h-4 flex items-center justify-center mr-2"></i>
-                      {group.subject}
+                      {group.subject || group.subject_name || 'N/A'}
                     </span>
                     <span className={`flex items-center ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       <i className="ri-time-line w-4 h-4 flex items-center justify-center mr-2"></i>
-                      {group.nextClass}
+                      {group.next_class_time || 'N/A'}
                     </span>
                     <span className={`flex items-center ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                       <i className="ri-map-pin-line w-4 h-4 flex items-center justify-center mr-2"></i>
-                      {group.room}
+                      {group.room || 'N/A'}
                     </span>
                   </div>
                 </div>
-                
                 <div className="ml-4">
                   <i className={`ri-arrow-right-line w-5 h-5 flex items-center justify-center ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`}></i>
                 </div>

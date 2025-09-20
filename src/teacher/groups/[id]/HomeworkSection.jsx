@@ -1,37 +1,68 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-// Mock lessons (45 lessons)
-const lessons = Array.from({ length: 45 }, (_, i) => ({
-  id: i + 1,
-  title: `Lesson ${i + 1}`,
-  topic: i === 5 ? "CSS Basics" : `Topic ${i + 1}`,
-}));
-
-// Mock homeworks per lesson
-const lessonHomeworks = {
-  6: [
-    { id: 1, title: "CSS Selectors Practice", description: "Learn CSS selectors.", difficulty: "Easy" },
-    { id: 2, title: "Flexbox Layout Challenge", description: "Build with flexbox.", difficulty: "Medium" },
-    { id: 3, title: "CSS Grid Mastery", description: "Master CSS Grid.", difficulty: "Hard" }
-  ],
-  1: [
-    { id: 1, title: "Intro to Variables", description: "Basics of variables.", difficulty: "Easy" }
-  ],
-};
+import { useUser } from "../../../UserContext";
+import { getLessons, getLessonHomeworkTasks } from '../../../lessonApi'; // API helper functions
 
 export default function LessonHomeworkSection() {
+  const { token } = useUser();  // ✅ get token from context/provider
   const [isDarkMode, setIsDarkMode] = useState(false);
-  const [savedLessons, setSavedLessons] = useState([]); // green lessons
-  const [activeLesson, setActiveLesson] = useState(null); // blue lesson
-  const [selectedHomeworks, setSelectedHomeworks] = useState({}); // in-progress selections
-  const [finalHomeworks, setFinalHomeworks] = useState({}); // saved selections
+  const [lessons, setLessons] = useState([]);
+  const [lessonHomeworks, setLessonHomeworks] = useState({});
+  const [savedLessons, setSavedLessons] = useState([]);
+  const [activeLesson, setActiveLesson] = useState(null);
+  const [selectedHomeworks, setSelectedHomeworks] = useState({});
+  const [finalHomeworks, setFinalHomeworks] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [loadingHomeworks, setLoadingHomeworks] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('darkMode');
-    if (savedTheme) setIsDarkMode(savedTheme === 'true');
-  }, []);
+    if (!token) return; // wait until token is ready
+    setIsDarkMode(false); 
+    loadLessons();
+  }, [token]);
+
+  const loadLessons = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const lessonsData = await getLessons(token); // ✅ pass token
+      setLessons(lessonsData);
+    } catch (error) {
+      console.error('Error loading lessons:', error);
+      setError("Failed to load lessons");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadHomeworks = async (lessonId) => {
+    if (lessonHomeworks[lessonId]) return;
+    setLoadingHomeworks(true);
+    try {
+      const homeworkData = await getLessonHomeworkTasks(lessonId, token); // ✅ pass token
+      setLessonHomeworks(prev => ({
+        ...prev,
+        [lessonId]: homeworkData
+      }));
+    } catch (error) {
+      console.error('Error loading homeworks:', error);
+      setError("Failed to load homeworks");
+    } finally {
+      setLoadingHomeworks(false);
+    }
+  };
+
+  // ... keep the rest of your component the same
+
+
+  // Mock function - implement based on your auth system
+  const getAuthToken = () => {
+    // Return your auth token here
+    // For now, returning empty string as fallback
+    return '';
+  };
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
@@ -44,6 +75,7 @@ export default function LessonHomeworkSection() {
 
   const handleLessonClick = (lessonId) => {
     setActiveLesson(lessonId); // show its homeworks
+    loadHomeworks(lessonId);
   };
 
   const handleHomeworkClick = (lessonId, hwId) => {
@@ -69,6 +101,17 @@ export default function LessonHomeworkSection() {
       [activeLesson]: selectedHomeworks[activeLesson] || [],
     }));
   };
+
+  if (loading) {
+    return (
+      <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
+        <div className="p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className={`mt-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Loading lessons...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border`}>
@@ -125,6 +168,11 @@ export default function LessonHomeworkSection() {
           {!activeLesson ? (
             <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
               <p>Please select a lesson to see its homeworks</p>
+            </div>
+          ) : loadingHomeworks ? (
+            <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2">Loading homeworks...</p>
             </div>
           ) : (
             <div className="space-y-3 max-h-[500px] overflow-y-auto">

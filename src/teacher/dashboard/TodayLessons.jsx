@@ -1,48 +1,50 @@
 // ✅ CORRECT (React Router)
 import { Link } from 'react-router-dom';
 
+
 import { useState, useEffect } from 'react';
+import { useUser } from '../../UserContext';
+import { getTeacherDashboard } from '../dashboardApi';
 
 export default function TodayLessons() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const { token } = useUser();
+  const [todayLessons, setTodayLessons] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
     setIsDarkMode(savedDarkMode);
   }, []);
 
-  const todayLessons = [
-    {
-      id: '1',
-      title: 'JavaScript Fundamentals',
-      group: 'Programming Class A',
-      time: '9:00 AM - 10:30 AM',
-      room: 'Room 301',
-      students: 28,
-      status: 'upcoming',
-      color: 'bg-blue-500'
-    },
-    {
-      id: '2',
-      title: 'React Components',
-      group: 'Web Development',
-      time: '11:00 AM - 12:30 PM',
-      room: 'Room 205',
-      students: 24,
-      status: 'in-progress',
-      color: 'bg-green-500'
-    },
-    {
-      id: '3',
-      title: 'Database Design',
-      group: 'Data Management',
-      time: '2:00 PM - 3:30 PM',
-      room: 'Lab 2',
-      students: 20,
-      status: 'upcoming',
-      color: 'bg-purple-500'
+  useEffect(() => {
+    async function fetchDashboard() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getTeacherDashboard(token);
+        // There is no today_lessons field, so we try to extract lessons from groups or recent_students
+        // For demo, let's just show the groups as today's lessons
+        const lessons = Array.isArray(data.groups) ? data.groups.map(group => ({
+          id: group.id,
+          title: group.name,
+          group: group.name,
+          time: group.created_date ? new Date(group.created_date).toLocaleTimeString() : '',
+          room: '',
+          students: group.student_count,
+          status: 'upcoming',
+          color: 'bg-blue-500',
+        })) : [];
+        setTodayLessons(lessons);
+      } catch (err) {
+        setError('Failed to load today\'s lessons');
+      } finally {
+        setLoading(false);
+      }
     }
-  ];
+    if (token) fetchDashboard();
+  }, [token]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -52,6 +54,9 @@ export default function TodayLessons() {
       default: return `${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-800'}`;
     }
   };
+
+  if (loading) return <div className={isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}>Loading today's lessons...</div>;
+  if (error) return <div className={isDarkMode ? 'bg-gray-800 border-gray-700 text-red-400' : 'bg-white border-gray-200 text-red-600'}>{error}</div>;
 
   return (
     <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl shadow-lg border p-6 mb-8`}>
@@ -70,13 +75,13 @@ export default function TodayLessons() {
           <div key={lesson.id} className={`border ${isDarkMode ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-200 hover:bg-gray-50'} rounded-lg p-4 transition-colors`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className={`w-4 h-4 rounded-full ${lesson.color}`}></div>
+                <div className={`w-4 h-4 rounded-full ${lesson.color || 'bg-blue-500'}`}></div>
 
                 <div>
                   <div className="flex items-center space-x-3 mb-1">
                     <h4 className={`text-lg font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{lesson.title}</h4>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(lesson.status)}`}>
-                      {lesson.status.replace('-', ' ').charAt(0).toUpperCase() + lesson.status.replace('-', ' ').slice(1)}
+                      {lesson.status ? lesson.status.replace('-', ' ').charAt(0).toUpperCase() + lesson.status.replace('-', ' ').slice(1) : ''}
                     </span>
                   </div>
 
@@ -103,7 +108,7 @@ export default function TodayLessons() {
 
               <div className="flex items-center space-x-2">
                 <Link
-                  to={`/teacher/groups/${lesson.id.split('_')[0] || '1'}`}
+                  to={`/teacher/groups/${lesson.group_id || lesson.id}`}
                   className={`px-3 py-1 text-sm rounded-md transition-colors whitespace-nowrap ${
                     lesson.status === 'upcoming' 
                       ? 'bg-blue-600 text-white hover:bg-blue-700'

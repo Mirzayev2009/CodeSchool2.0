@@ -95,13 +95,13 @@ export default function StudentHeader() {
                   Dashboard
                 </Link>
                 
-                <Link 
+                {/* <Link 
                   to="/student/assignments" 
                   className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
                 >
                   <i className="ri-file-list-line w-4 h-4 flex items-center justify-center mr-2 inline-flex"></i>
                   Assignments
-                </Link>
+                </Link> */}
                  <Link 
                   to="/student/lessons" 
                   className={`text-sm font-medium transition-colors ${isDarkMode ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}

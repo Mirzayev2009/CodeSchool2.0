@@ -1,7 +1,10 @@
 'use client';
 
-export default function RecentActivity() {
-  const activities = [
+import React from 'react';
+
+export default function RecentActivity({ activities }) {
+  // fallback sample if activities not provided
+  const SAMPLE = [
     {
       id: 1,
       type: 'student_enrolled',
@@ -25,32 +28,10 @@ export default function RecentActivity() {
       time: '1 hour ago',
       icon: 'ri-file-add-line',
       color: 'purple'
-    },
-    {
-      id: 4,
-      type: 'schedule_updated',
-      message: 'Monday schedule updated for Advanced Python class',
-      time: '2 hours ago',
-      icon: 'ri-calendar-event-line',
-      color: 'orange'
-    },
-    {
-      id: 5,
-      type: 'payment_received',
-      message: 'Payment received from Emily Davis for December fees',
-      time: '3 hours ago',
-      icon: 'ri-money-dollar-circle-line',
-      color: 'emerald'
-    },
-    {
-      id: 6,
-      type: 'grade_updated',
-      message: 'Grades updated for "Introduction to Algorithms" assignment',
-      time: '5 hours ago',
-      icon: 'ri-star-line',
-      color: 'yellow'
     }
   ];
+
+  const finalActs = Array.isArray(activities) && activities.length ? activities : SAMPLE;
 
   const colorClasses = {
     blue: 'bg-blue-50 text-blue-600',
@@ -71,14 +52,14 @@ export default function RecentActivity() {
       </div>
 
       <div className="space-y-4">
-        {activities.map((activity) => (
+        {finalActs.map((activity) => (
           <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-            <div className={`p-2 rounded-full ${colorClasses[activity.color]}`}>
+            <div className={`p-2 rounded-full ${colorClasses[activity.color] ?? 'bg-gray-50 text-gray-600'}`}>
               <i className={`${activity.icon} w-4 h-4 flex items-center justify-center`}></i>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-gray-900">{activity.message}</p>
-              <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
+              <p className="text-xs text-gray-500 mt-1">{activity.time || ''}</p>
             </div>
           </div>
         ))}
