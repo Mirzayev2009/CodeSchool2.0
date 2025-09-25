@@ -13,17 +13,14 @@ import {
 export default function StudentCreate() {
   const [formData, setFormData] = useState({
     name: "",
-    email: "",
     phone: "",
-    teacher: "",
+    parentPhone: "",
     group: "",
-    tuition: "",
+    notes: "",
     status: "active",
-    enrollmentDate: "",
   });
 
   const [groups, setGroups] = useState([]);
-  const [teachers, setTeachers] = useState([]);
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -43,7 +40,7 @@ export default function StudentCreate() {
     );
   }
 
-  // load groups (and derive teachers from groups) on mount
+  // load groups on mount
   useEffect(() => {
     const token = getTokenFromStorage();
     if (!token) return;
@@ -52,35 +49,12 @@ export default function StudentCreate() {
     (async () => {
       try {
         const res = await getGroups(token);
-        // getGroups returns parsed JSON. It might be an array or an object with results.
         const list = Array.isArray(res) ? res : (res.results ?? res.data ?? []);
         if (!mounted) return;
-
         setGroups(list);
-
-        // derive teacher list from groups: handle many shapes (teacher id, teacher object, teacher name)
-        const seen = new Map();
-        list.forEach((g) => {
-          const t = g.teacher ?? g.teacher_id ?? g.teacher_pk ?? g.teacher_name ?? null;
-          if (!t) return;
-
-          // if teacher is object:
-          if (typeof t === "object" && t !== null) {
-            const id = t.id ?? t.pk ?? t.teacher_id ?? JSON.stringify(t);
-            const name = (t.name ?? t.full_name ?? `${t.first_name ?? ""} ${t.last_name ?? ""}`).trim() || String(id);
-            if (!seen.has(id)) seen.set(id, { id, name });
-          } else {
-            // t is primitive (string or number)
-            const id = String(t);
-            const name = String(t);
-            if (!seen.has(id)) seen.set(id, { id, name });
-          }
-        });
-
-        setTeachers(Array.from(seen.values()));
       } catch (err) {
         // silently ignore — keep UI intact
-        console.error("Failed to load groups/teachers", err);
+        console.error("Failed to load groups", err);
       }
     })();
 
@@ -99,7 +73,6 @@ export default function StudentCreate() {
       try {
         setLoading(true);
         const res = await getStudent(editingId, token);
-        // res is parsed JSON. Normalize fields safely.
         if (!mounted) return;
 
         const student = res ?? {};
@@ -108,32 +81,23 @@ export default function StudentCreate() {
           student.name ??
           `${student.first_name ?? ""} ${student.last_name ?? ""}`.trim() ??
           "";
-        const email = student.email ?? student.email_address ?? "";
-        const phone = student.phone ?? student.mobile ?? "";
-        // group might be id or object
+        const phone = student.phone ?? student.mobile ?? student.phone_number ?? "";
+        const parentPhone = student.parent_phone ?? student.parentPhone ?? student.parent_mobile ?? student.parent_phone_number ?? "";
         const group =
           (student.group && (typeof student.group === "object" ? (student.group.id ?? student.group.pk ?? "") : student.group)) ??
           student.group_id ??
           student.group_pk ??
           "";
-        const teacher =
-          (student.teacher && (typeof student.teacher === "object" ? (student.teacher.id ?? student.teacher.pk ?? "") : student.teacher)) ??
-          student.teacher_id ??
-          student.teacher_pk ??
-          "";
-        const tuition = student.tuition ?? student.tuition_fee ?? student.fee ?? student.amount ?? "";
+        const notes = student.notes ?? student.note ?? student.description ?? student.motivation ?? student.admin_notes ?? "";
         const status = student.status ?? (student.is_active ? "active" : "inactive") ?? "active";
-        const enrollmentDate = student.enrollment_date ?? student.enrolled_at ?? student.enrollmentDate ?? "";
 
         setFormData({
           name,
-          email,
-          phone,
-          teacher: teacher ? String(teacher) : "",
+          phone: phone ? String(phone) : "",
+          parentPhone: parentPhone ? String(parentPhone) : "",
           group: group ? String(group) : "",
-          tuition: tuition === null || tuition === undefined ? "" : String(tuition),
+          notes: notes ? String(notes) : "",
           status,
-          enrollmentDate: enrollmentDate ? String(enrollmentDate).slice(0, 10) : "",
         });
       } catch (err) {
         console.error("Failed to load student", err);
@@ -154,7 +118,10 @@ export default function StudentCreate() {
 
   const validate = () => {
     if (!formData.name.trim()) { alert("Full name is required"); return false; }
-    if (formData.tuition && Number(formData.tuition) < 0) { alert("Tuition must be >= 0"); return false; }
+    if (!formData.phone.trim()) { alert("Phone number is required"); return false; }
+    if (!formData.parentPhone.trim()) { alert("Parent's phone number is required"); return false; }
+    if (!formData.group) { alert("Please select a group"); return false; }
+    if (!formData.notes.trim()) { alert("Please add notes / motivation"); return false; }
     return true;
   };
 
@@ -172,13 +139,11 @@ export default function StudentCreate() {
     const payload = {
       full_name: formData.name,
       name: formData.name,
-      email: formData.email || "",
       phone: formData.phone || "",
-      teacher: formData.teacher || null, // teacher id or string
+      parent_phone: formData.parentPhone || "",
       group: formData.group || null, // group id or string
-      tuition: formData.tuition ? Number(formData.tuition) : null,
+      notes: formData.notes || "",
       status: formData.status || "active",
-      enrollment_date: formData.enrollmentDate || null,
     };
 
     try {
@@ -222,16 +187,6 @@ export default function StudentCreate() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block font-medium">Email</label>
-              <input
-                type="email"
-                name="email"
-                className="w-full border rounded p-2"
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
               <label className="block font-medium">Phone</label>
               <input
                 type="text"
@@ -241,63 +196,47 @@ export default function StudentCreate() {
                 onChange={handleChange}
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block font-medium">Assign Teacher</label>
-              <select
-                name="teacher"
+              <label className="block font-medium">Parent's Phone</label>
+              <input
+                type="text"
+                name="parentPhone"
                 className="w-full border rounded p-2"
-                value={formData.teacher}
+                value={formData.parentPhone}
                 onChange={handleChange}
-              >
-                <option value="">Select teacher</option>
-                {teachers.length === 0 && (
-                  // keep original placeholder options if none fetched
-                  <>
-                    <option value="1">John Doe</option>
-                    <option value="2">Jane Smith</option>
-                  </>
-                )}
-                {teachers.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block font-medium">Assign Group</label>
-              <select
-                name="group"
-                className="w-full border rounded p-2"
-                value={formData.group}
-                onChange={handleChange}
-              >
-                <option value="">Select group</option>
-                {groups.length === 0 && (
-                  <>
-                    <option value="g1">JavaScript Fundamentals</option>
-                    <option value="g2">Python Basics</option>
-                  </>
-                )}
-                {groups.map((g) => {
-                  // group might be object or primitive
-                  const gid = (g.id ?? g.pk ?? g.group_id ?? g) ;
-                  const gname = (g.name ?? g.title ?? g.uz ?? String(gid));
-                  return <option key={String(gid)} value={String(gid)}>{gname}</option>;
-                })}
-              </select>
+              />
             </div>
           </div>
 
           <div>
-            <label className="block font-medium">Tuition Fee (UZS)</label>
-            <input
-              type="number"
-              name="tuition"
+            <label className="block font-medium">Assign Group</label>
+            <select
+              name="group"
               className="w-full border rounded p-2"
-              value={formData.tuition}
+              value={formData.group}
+              onChange={handleChange}
+            >
+              <option value="">Select group</option>
+              {groups.length === 0 && (
+                <>
+                  <option value="g1">JavaScript Fundamentals</option>
+                  <option value="g2">Python Basics</option>
+                </>
+              )}
+              {groups.map((g) => {
+                const gid = (g.id ?? g.pk ?? g.group_id ?? g);
+                const gname = (g.name ?? g.title ?? g.uz ?? String(gid));
+                return <option key={String(gid)} value={String(gid)}>{gname}</option>;
+              })}
+            </select>
+          </div>
+
+          <div>
+            <label className="block font-medium">Notes / Motivation</label>
+            <textarea
+              name="notes"
+              className="w-full border rounded p-2 h-32"
+              value={formData.notes}
               onChange={handleChange}
             />
           </div>
@@ -314,16 +253,6 @@ export default function StudentCreate() {
                 <option value="active">Active</option>
                 <option value="inactive">Inactive</option>
               </select>
-            </div>
-            <div>
-              <label className="block font-medium">Enrollment Date</label>
-              <input
-                type="date"
-                name="enrollmentDate"
-                className="w-full border rounded p-2"
-                value={formData.enrollmentDate}
-                onChange={handleChange}
-              />
             </div>
           </div>
 

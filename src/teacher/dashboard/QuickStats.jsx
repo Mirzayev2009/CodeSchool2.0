@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useUser } from '../../UserContext';
-import { getTeacherDashboard } from '../dashboardApi';
+import { getTeacherDashboard } from '../../dashboardApi';
 
 export default function QuickStats() {
   const { token } = useUser();

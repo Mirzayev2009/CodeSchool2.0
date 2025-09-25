@@ -8,6 +8,7 @@ export default function StudentsTable({
   searchTerm,
   filterClass,
   filterStatus,
+  filterAttendanceStatus,
   students = [],
   loading = false,
   onDelete = () => {},
@@ -23,10 +24,13 @@ export default function StudentsTable({
 
       const matchesClass = (filterClass ?? '') === '' || (student.class ?? '') === filterClass;
       const matchesStatus = (filterStatus ?? '') === '' || (student.status ?? '') === filterStatus;
+      const matchesAttendance = (filterAttendanceStatus ?? '') === '' || (student.attendance ?? '') === filterAttendanceStatus;
 
-      return matchesSearch && matchesClass && matchesStatus;
+     
+
+      return matchesSearch && matchesClass && matchesStatus  && matchesAttendance;
     });
-  }, [students, searchTerm, filterClass, filterStatus]);
+  }, [students, searchTerm, filterClass, filterStatus, filterAttendanceStatus]);
 
   const getStatusBadge = (status) => {
     return status === 'Active'

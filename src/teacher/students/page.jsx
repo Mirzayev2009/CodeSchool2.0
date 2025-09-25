@@ -1,7 +1,31 @@
+// File: src/teacher/dashboardApi.js
+export const BASE_URL =  'https://sanjar1718.pythonanywhere.com';
+
+/**
+ * Fetch list of teacher students from backend.
+ * token is optional — if present it will be sent as `Authorization: Token <token>`
+ * Returns an array (raw backend shape) — caller should normalize if needed.
+ */
+export async function getTeacherStudents(token) {
+  const headers = token ? { Authorization: `Token ${token}` } : {};
+  const res = await fetch(`${BASE_URL}/api/students/`, { headers });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Failed to fetch students: ${res.status} ${body}`);
+  }
+  const data = await res.json();
+  // backend might return an array or a paginated object { results: [] }
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data.results)) return data.results;
+  // unknown shape -> return empty array to avoid breaking the UI
+  return [];
+}
 
 
-import { useState, useEffect } from 'react';
+// File: src/teacher/components/TeacherStudents.jsx
+import React, { useState, useEffect, useMemo } from 'react';
 import TeacherSidebar from '../../../components/TeacherSidebar';
+// import { getTeacherStudents } from '../../teacher/dashboardApi';
 
 export default function TeacherStudents() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -10,10 +34,15 @@ export default function TeacherStudents() {
   const [showStudentModal, setShowStudentModal] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
+  // data states
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   useEffect(() => {
     const savedDarkMode = localStorage.getItem('darkMode') === 'true';
     setIsDarkMode(savedDarkMode);
-    
+
     if (savedDarkMode) {
       document.documentElement.classList.add('dark');
     } else {
@@ -21,126 +50,85 @@ export default function TeacherStudents() {
     }
   }, []);
 
-  const students = [
-    {
-      id: '1',
-      name: 'Emily Johnson',
-      email: 'emily.johnson@university.edu',
-      avatar: 'https://readdy.ai/api/search-image?query=professional%20headshot%20of%20young%20woman%20student%20with%20blonde%20hair%2C%20bright%20smile%2C%20university%20student%20portrait%2C%20clean%20white%20background%2C%20high%20quality%20photography%2C%20natural%20lighting&width=100&height=100&seq=student1&orientation=squarish',
-      group: 'Advanced Mathematics',
-      attendance: 95,
-      homeworkRate: 94,
-      currentGrade: 'A',
-      enrolledDate: 'Sep 2023',
-      totalAssignments: 18,
-      completedAssignments: 17,
-      lastActive: '2 hours ago'
-    },
-    {
-      id: '2',
-      name: 'Michael Chen',
-      email: 'michael.chen@university.edu',
-      avatar: 'https://readdy.ai/api/search-image?query=professional%20headshot%20of%20young%20Asian%20man%20student%20with%20short%20black%20hair%2C%20confident%20expression%2C%20university%20student%20portrait%2C%20clean%20white%20background%2C%20high%20quality%20photography%2C%20natural%20lighting&width=100&height=100&seq=student2&orientation=squarish',
-      group: 'Programming Basics',
-      attendance: 88,
-      homeworkRate: 89,
-      currentGrade: 'B+',
-      enrolledDate: 'Sep 2023',
-      totalAssignments: 16,
-      completedAssignments: 14,
-      lastActive: '1 day ago'
-    },
-    {
-      id: '3',
-      name: 'Sarah Williams',
-      email: 'sarah.williams@university.edu',
-      avatar: 'https://readdy.ai/api/search-image?query=professional%20headshot%20of%20young%20woman%20student%20with%20brown%20hair%2C%20warm%20smile%2C%20university%20student%20portrait%2C%20clean%20white%20background%2C%20high%20quality%20photography%2C%20natural%20lighting&width=100&height=100&seq=student3&orientation=squarish',
-      group: 'Data Structures',
-      attendance: 92,
-      homeworkRate: 96,
-      currentGrade: 'A-',
-      enrolledDate: 'Sep 2023',
-      totalAssignments: 20,
-      completedAssignments: 19,
-      lastActive: '4 hours ago'
-    },
-    {
-      id: '4',
-      name: 'David Rodriguez',
-      email: 'david.rodriguez@university.edu',
-      avatar: 'https://readdy.ai/api/search-image?query=professional%20headshot%20of%20young%20Hispanic%20man%20student%20with%20dark%20hair%2C%20friendly%20expression%2C%20university%20student%20portrait%2C%20clean%20white%20background%2C%20high%20quality%20photography%2C%20natural%20lighting&width=100&height=100&seq=student4&orientation=squarish',
-      group: 'Linear Algebra',
-      attendance: 76,
-      homeworkRate: 78,
-      currentGrade: 'B-',
-      enrolledDate: 'Sep 2023',
-      totalAssignments: 15,
-      completedAssignments: 12,
-      lastActive: '3 days ago'
-    },
-    {
-      id: '5',
-      name: 'Jessica Brown',
-      email: 'jessica.brown@university.edu',
-      avatar: 'https://readdy.ai/api/search-image?query=professional%20headshot%20of%20young%20African%20American%20woman%20student%20with%20curly%20hair%2C%20bright%20smile%2C%20university%20student%20portrait%2C%20clean%20white%20background%2C%20high%20quality%20photography%2C%20natural%20lighting&width=100&height=100&seq=student5&orientation=squarish',
-      group: 'Web Development',
-      attendance: 98,
-      homeworkRate: 100,
-      currentGrade: 'A+',
-      enrolledDate: 'Sep 2023',
-      totalAssignments: 22,
-      completedAssignments: 22,
-      lastActive: '1 hour ago'
-    },
-    {
-      id: '6',
-      name: 'Alex Thompson',
-      email: 'alex.thompson@university.edu',
-      avatar: 'https://readdy.ai/api/search-image?query=professional%20headshot%20of%20young%20person%20student%20with%20short%20brown%20hair%2C%20gentle%20expression%2C%20university%20student%20portrait%2C%20clean%20white%20background%2C%20high%20quality%20photography%2C%20natural%20lighting&width=100&height=100&seq=student6&orientation=squarish',
-      group: 'Statistics',
-      attendance: 84,
-      homeworkRate: 82,
-      currentGrade: 'B',
-      enrolledDate: 'Oct 2023',
-      totalAssignments: 14,
-      completedAssignments: 11,
-      lastActive: '1 day ago'
-    },
-    {
-      id: '7',
-      name: 'Lisa Park',
-      email: 'lisa.park@university.edu',
-      avatar: 'https://readdy.ai/api/search-image?query=professional%20headshot%20of%20young%20Asian%20woman%20student%20with%20long%20black%20hair%2C%20confident%20smile%2C%20university%20student%20portrait%2C%20clean%20white%20background%2C%20high%20quality%20photography%2C%20natural%20lighting&width=100&height=100&seq=student7&orientation=squarish',
-      group: 'Algorithm Design',
-      attendance: 90,
-      homeworkRate: 87,
-      currentGrade: 'A-',
-      enrolledDate: 'Sep 2023',
-      totalAssignments: 19,
-      completedAssignments: 16,
-      lastActive: '5 hours ago'
-    },
-    {
-      id: '8',
-      name: 'James Wilson',
-      email: 'james.wilson@university.edu',
-      avatar: 'https://readdy.ai/api/search-image?query=professional%20headshot%20of%20young%20man%20student%20with%20brown%20hair%2C%20friendly%20expression%2C%20university%20student%20portrait%2C%20clean%20white%20background%2C%20high%20quality%20photography%2C%20natural%20lighting&width=100&height=100&seq=student8&orientation=squarish',
-      group: 'Database Systems',
-      attendance: 86,
-      homeworkRate: 91,
-      currentGrade: 'B+',
-      enrolledDate: 'Sep 2023',
-      totalAssignments: 17,
-      completedAssignments: 15,
-      lastActive: '6 hours ago'
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchStudents() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Try to find an auth token in localStorage — common keys checked
+        const token =
+          localStorage.getItem('authToken') ||
+          localStorage.getItem('token') ||
+          localStorage.getItem('dashboardToken') ||
+          localStorage.getItem('teacherToken') ||
+          null;
+
+        const raw = await getTeacherStudents(token);
+
+        if (cancelled) return;
+
+        // Normalize backend fields into the shape expected by the UI
+        const normalized = raw.map((s) => {
+          const fullName =
+            s.name || s.full_name || `${s.first_name || ''} ${s.last_name || ''}`.trim() || 'Student';
+
+          const avatar =
+            s.avatar || s.avatar_url || s.profile_picture ||
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=fff&color=000&size=128`;
+
+          const groupName =
+            (s.group && (typeof s.group === 'string' ? s.group : s.group.name)) ||
+            s.group_name ||
+            s.course ||
+            'Ungrouped';
+
+          const enrolledDate =
+            s.enrolled_date || s.enrolledDate || (s.created_at ? formatShortDate(s.created_at) : 'Unknown');
+
+          const totalAssignments = s.total_assignments ?? s.totalAssignments ?? s.assignments_count ?? 0;
+          const completedAssignments = s.completed_assignments ?? s.completedAssignments ?? s.completed_count ?? 0;
+
+          return {
+            id: String(s.id ?? s.pk ?? Math.random()),
+            name: fullName,
+            email: s.email || s.contact_email || '',
+            avatar,
+            group: groupName,
+            attendance: Number(s.attendance ?? s.attendance_rate ?? s.attendancePercent ?? 0),
+            homeworkRate: Number(s.homework_rate ?? s.homeworkRate ?? s.homeworkPercent ?? 0),
+            currentGrade: s.current_grade ?? s.grade ?? (s.gpa ? String(s.gpa) : 'N/A'),
+            enrolledDate,
+            totalAssignments,
+            completedAssignments,
+            lastActive: s.last_active || s.lastActive || s.last_login || null,
+          };
+        });
+
+        setStudents(normalized);
+      } catch (err) {
+        setError(err.message || 'Failed to load students');
+      } finally {
+        setLoading(false);
+      }
     }
-  ];
 
-  const groups = ['all', 'Advanced Mathematics', 'Programming Basics', 'Data Structures', 'Linear Algebra', 'Web Development', 'Statistics', 'Algorithm Design', 'Database Systems'];
+    fetchStudents();
 
-  const filteredStudents = students.filter(student => {
-    const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         student.email.toLowerCase().includes(searchTerm.toLowerCase());
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // derive groups from fetched students so UI stays consistent
+  const groups = useMemo(() => ['all', ...Array.from(new Set(students.map(s => s.group).filter(Boolean)))], [students]);
+
+  const filteredStudents = students.filter((student) => {
+    const matchesSearch =
+      student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (student.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGroup = selectedGroup === 'all' || student.group === selectedGroup;
     return matchesSearch && matchesGroup;
   });
@@ -158,9 +146,9 @@ export default function TeacherStudents() {
   };
 
   const getGradeColor = (grade) => {
-    if (grade.startsWith('A')) return 'bg-green-100 text-green-800';
-    if (grade.startsWith('B')) return 'bg-blue-100 text-blue-800';
-    if (grade.startsWith('C')) return 'bg-yellow-100 text-yellow-800';
+    if (String(grade).startsWith('A')) return 'bg-green-100 text-green-800';
+    if (String(grade).startsWith('B')) return 'bg-blue-100 text-blue-800';
+    if (String(grade).startsWith('C')) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
   };
 
@@ -173,7 +161,7 @@ export default function TeacherStudents() {
     <div className={`min-h-screen ${isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
       <div className="flex">
         <TeacherSidebar />
-        
+
         <div className="flex-1 ml-64">
           <div className="p-8">
             <div className="mb-8">
@@ -193,33 +181,39 @@ export default function TeacherStudents() {
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         className={`pl-10 pr-4 py-2 border rounded-lg w-64 text-sm ${
-                          isDarkMode 
-                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                          isDarkMode
+                            ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400'
                             : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                         } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                       />
                     </div>
-                    
+
                     <select
                       value={selectedGroup}
                       onChange={(e) => setSelectedGroup(e.target.value)}
                       className={`px-3 py-2 pr-8 border rounded-lg text-sm ${
-                        isDarkMode 
-                          ? 'bg-gray-700 border-gray-600 text-white' 
+                        isDarkMode
+                          ? 'bg-gray-700 border-gray-600 text-white'
                           : 'bg-white border-gray-300 text-gray-900'
                       } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
                     >
                       <option value="all">All Groups</option>
-                      {groups.slice(1).map(group => (
-                        <option key={group} value={group}>{group}</option>
+                      {groups.slice(1).map((group) => (
+                        <option key={group} value={group}>
+                          {group}
+                        </option>
                       ))}
                     </select>
                   </div>
 
                   <div className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                    {filteredStudents.length} students found
+                    {loading ? 'Loading students...' : `${filteredStudents.length} students found`}
                   </div>
                 </div>
+
+                {error && (
+                  <div className="mb-4 text-sm text-red-600">Error loading students: {error}</div>
+                )}
 
                 <div className="overflow-x-auto">
                   <table className="w-full">
@@ -234,52 +228,54 @@ export default function TeacherStudents() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredStudents.map((student, index) => (
-                        <tr 
-                          key={student.id} 
-                          className={`border-b ${isDarkMode ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-100 hover:bg-gray-50'} transition-colors cursor-pointer`}
-                          onClick={() => handleStudentClick(student)}
-                        >
-                          <td className="py-4 px-4">
-                            <div className="flex items-center space-x-3">
-                              <img
-                                src={student.avatar}
-                                alt={student.name}
-                                className="w-10 h-10 rounded-full object-cover object-top"
-                              />
-                              <div>
-                                <div className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{student.name}</div>
-                                <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{student.email}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className={`py-4 px-4 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            {student.group}
-                          </td>
-                          <td className={`py-4 px-4 text-sm font-medium ${getAttendanceColor(student.attendance)}`}>
-                            {student.attendance}%
-                          </td>
-                          <td className={`py-4 px-4 text-sm font-medium ${getHomeworkColor(student.homeworkRate)}`}>
-                            {student.homeworkRate}%
-                          </td>
-                          <td className="py-4 px-4">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getGradeColor(student.currentGrade)}`}>
-                              {student.currentGrade}
-                            </span>
-                          </td>
-                          <td className="py-4 px-4">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStudentClick(student);
-                              }}
-                              className="text-blue-600 hover:text-blue-800 text-sm font-medium whitespace-nowrap"
-                            >
-                              View Details
-                            </button>
+                      {loading ? (
+                        <tr>
+                          <td colSpan={6} className="py-6 px-4 text-center text-sm text-gray-500">
+                            Loading students...
                           </td>
                         </tr>
-                      ))}
+                      ) : filteredStudents.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-6 px-4 text-center text-sm text-gray-500">
+                            No students found.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredStudents.map((student) => (
+                          <tr
+                            key={student.id}
+                            className={`border-b ${isDarkMode ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-100 hover:bg-gray-50'} transition-colors cursor-pointer`}
+                            onClick={() => handleStudentClick(student)}
+                          >
+                            <td className="py-4 px-4">
+                              <div className="flex items-center space-x-3">
+                                <img src={student.avatar} alt={student.name} className="w-10 h-10 rounded-full object-cover object-top" />
+                                <div>
+                                  <div className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{student.name}</div>
+                                  <div className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{student.email}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className={`py-4 px-4 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{student.group}</td>
+                            <td className={`py-4 px-4 text-sm font-medium ${getAttendanceColor(student.attendance)}`}>{student.attendance}%</td>
+                            <td className={`py-4 px-4 text-sm font-medium ${getHomeworkColor(student.homeworkRate)}`}>{student.homeworkRate}%</td>
+                            <td className="py-4 px-4">
+                              <span className={`px-2 py-1 rounded-full text-xs font-medium ${getGradeColor(student.currentGrade)}`}>{student.currentGrade}</span>
+                            </td>
+                            <td className="py-4 px-4">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStudentClick(student);
+                                }}
+                                className="text-blue-600 hover:text-blue-800 text-sm font-medium whitespace-nowrap"
+                              >
+                                View Details
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -294,11 +290,7 @@ export default function TeacherStudents() {
           <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto`}>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-4">
-                <img
-                  src={selectedStudent.avatar}
-                  alt={selectedStudent.name}
-                  className="w-16 h-16 rounded-full object-cover object-top"
-                />
+                <img src={selectedStudent.avatar} alt={selectedStudent.name} className="w-16 h-16 rounded-full object-cover object-top" />
                 <div>
                   <h3 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedStudent.name}</h3>
                   <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>{selectedStudent.email}</p>
@@ -320,21 +312,15 @@ export default function TeacherStudents() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Current Grade</span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getGradeColor(selectedStudent.currentGrade)}`}>
-                        {selectedStudent.currentGrade}
-                      </span>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getGradeColor(selectedStudent.currentGrade)}`}>{selectedStudent.currentGrade}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Attendance Rate</span>
-                      <span className={`text-sm font-medium ${getAttendanceColor(selectedStudent.attendance)}`}>
-                        {selectedStudent.attendance}%
-                      </span>
+                      <span className={`text-sm font-medium ${getAttendanceColor(selectedStudent.attendance)}`}>{selectedStudent.attendance}%</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Homework Rate</span>
-                      <span className={`text-sm font-medium ${getHomeworkColor(selectedStudent.homeworkRate)}`}>
-                        {selectedStudent.homeworkRate}%
-                      </span>
+                      <span className={`text-sm font-medium ${getHomeworkColor(selectedStudent.homeworkRate)}`}>{selectedStudent.homeworkRate}%</span>
                     </div>
                   </div>
                 </div>
@@ -344,15 +330,13 @@ export default function TeacherStudents() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Completed</span>
-                      <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        {selectedStudent.completedAssignments}/{selectedStudent.totalAssignments}
-                      </span>
+                      <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedStudent.completedAssignments}/{selectedStudent.totalAssignments}</span>
                     </div>
                     <div className={`w-full bg-gray-200 rounded-full h-2 ${isDarkMode ? 'bg-gray-600' : 'bg-gray-200'}`}>
                       <div
                         className="bg-blue-600 h-2 rounded-full"
                         style={{
-                          width: `${(selectedStudent.completedAssignments / selectedStudent.totalAssignments) * 100}%`
+                          width: `${(selectedStudent.completedAssignments / Math.max(1, selectedStudent.totalAssignments)) * 100}%`
                         }}
                       ></div>
                     </div>
@@ -370,7 +354,7 @@ export default function TeacherStudents() {
                     </div>
                     <div className="flex items-center justify-between">
                       <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Last Active</span>
-                      <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{selectedStudent.lastActive}</span>
+                      <span className={`text-sm font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{formatRelative(selectedStudent.lastActive)}</span>
                     </div>
                   </div>
                 </div>
@@ -378,16 +362,8 @@ export default function TeacherStudents() {
                 <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
                   <h4 className={`font-medium mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>Quick Actions</h4>
                   <div className="space-y-2">
-                    <button className="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">
-                      Send Message
-                    </button>
-                    <button className={`w-full px-3 py-2 text-sm rounded-lg transition-colors whitespace-nowrap ${
-                      isDarkMode 
-                        ? 'bg-gray-600 text-gray-300 hover:bg-gray-500' 
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}>
-                      View Full Profile
-                    </button>
+                    <button className="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap">Send Message</button>
+                    <button className={`w-full px-3 py-2 text-sm rounded-lg transition-colors whitespace-nowrap ${isDarkMode ? 'bg-gray-600 text-gray-300 hover:bg-gray-500' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>View Full Profile</button>
                   </div>
                 </div>
               </div>
@@ -396,11 +372,7 @@ export default function TeacherStudents() {
             <div className="mt-6 flex items-center justify-end">
               <button
                 onClick={() => setShowStudentModal(false)}
-                className={`px-4 py-2 text-sm rounded-md transition-colors whitespace-nowrap ${
-                  isDarkMode 
-                    ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                className={`px-4 py-2 text-sm rounded-md transition-colors whitespace-nowrap ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
               >
                 Close
               </button>
@@ -410,4 +382,28 @@ export default function TeacherStudents() {
       )}
     </div>
   );
+}
+
+// ------------------ helper functions ------------------
+function formatShortDate(value) {
+  try {
+    return new Date(value).toLocaleDateString();
+  } catch (_e) {
+    return value;
+  }
+}
+
+function formatRelative(value) {
+  if (!value) return 'Unknown';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  const diff = Date.now() - d.getTime();
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return `${sec} sec ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} min ago`;
+  const hrs = Math.floor(min / 60);
+  if (hrs < 24) return `${hrs} hours ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days} days ago`;
 }

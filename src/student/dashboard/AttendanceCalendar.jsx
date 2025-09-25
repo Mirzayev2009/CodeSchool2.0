@@ -52,6 +52,7 @@ useEffect(() => {
       if (!studentId) throw new Error('No student ID');
 
       const result = await getAttendanceByStudent(studentId, token);
+      console.log('Fetched attendance data:', result);
 
       // ✅ ensure we always set an array
       if (Array.isArray(result)) {
@@ -63,7 +64,7 @@ useEffect(() => {
       }
     } catch (err) {
       console.error(err);
-      setError('Failed to load attendance data');
+      setError('Failed to load ');
     } finally {
       setLoading(false);
     }

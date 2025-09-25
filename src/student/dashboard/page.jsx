@@ -94,14 +94,6 @@ export default function StudentDashboard() {
 
   return (
     <div className={`min-h-screen  ${isDarkMode ? 'bg-gray-900' : 'bg-gray-50'} `}>
-      <div className="flex justify-end items-center p-4 border-b border-gray-200 dark:border-gray-700">
-        <button
-          onClick={() => { logout(); navigate('/login?role=student&loggedout=true'); }}
-          className="px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
-        >
-          Logout
-        </button>
-      </div>
       <StudentHeader />
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="mb-8">

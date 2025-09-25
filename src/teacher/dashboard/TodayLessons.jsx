@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 import { useState, useEffect } from 'react';
 import { useUser } from '../../UserContext';
-import { getTeacherDashboard } from '../dashboardApi';
+import { getTeacherDashboard } from '../../dashboardApi';
 
 export default function TodayLessons() {
   const [isDarkMode, setIsDarkMode] = useState(false);

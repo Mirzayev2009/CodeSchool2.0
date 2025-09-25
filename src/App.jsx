@@ -42,6 +42,7 @@ import Classes from './admin/classes/Classes';
 import ClassCreate from './admin/classes/ClassCreate';
 import TeacherCreate from './admin/teachers/TeacherAdd';
 import StudentCreate from './admin/students/StudentAdd';
+import AdminNotificationsPage from './admin/dashboard/Notifications';
 
 function App() {
   return (
@@ -85,6 +86,7 @@ function App() {
         <Route path="/admin/classes/create" element={<ClassCreate/>} /> 
         <Route path="/admin/teachers/add" element={<TeacherCreate/>} /> 
         <Route path="/admin/students/add" element={<StudentCreate/>} /> 
+        <Route path="/admin/notifications" element={<AdminNotificationsPage/>} /> 
        
       </Routes>
   );

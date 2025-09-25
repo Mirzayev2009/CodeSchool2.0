@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 // import AdminHeader from '../../components/AdminHeader';
 import AdminSidebar from '../../../components/AdminSidebar';
 import QuickActions from './QuickActions';
@@ -30,6 +31,7 @@ function getTokenFromStorage() {
 }
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +39,13 @@ export default function AdminDashboard() {
   const [payments, setPayments] = useState([]);
   const [students, setStudents] = useState([]);
   const [groups, setGroups] = useState([]);
+
+  // notification / profile UI state
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const notifRef = useRef(null);
+  const profileRef = useRef(null);
 
   // fallback sample data (keeps UI intact if API unavailable)
   const SAMPLE_STATS = [
@@ -304,18 +313,143 @@ export default function AdminDashboard() {
     }
   })();
 
+  // derive notifications from activities (UI-only for now)
+  useEffect(() => {
+    const nots = (activities || SAMPLE_ACTIVITIES).slice(0, 6).map((a, i) => ({
+      id: a.id ?? `n-${i}`,
+      title: a.message,
+      time: a.time || '',
+      read: false,
+      type: a.type || 'info'
+    }));
+    setNotifications(nots);
+  }, [activities]);
+
+  // close popovers on outside click
+  useEffect(() => {
+    function handleClick(e) {
+      if (notifRef.current && !notifRef.current.contains(e.target)) setIsNotifOpen(false);
+      if (profileRef.current && !profileRef.current.contains(e.target)) setIsProfileOpen(false);
+    }
+    function handleKey(e) {
+      if (e.key === 'Escape') {
+        setIsNotifOpen(false);
+        setIsProfileOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, []);
+
+  const unreadCount = notifications.filter(n => !n.read).length;
+
+  const markAsRead = (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+  };
+  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+
+  const adminName = localStorage.getItem('adminName') ?? '';
+  const initials = adminName ? adminName.split(' ').map(x => x[0]).slice(0,2).join('').toUpperCase() : 'AD';
+
+  const handleLogout = () => {
+    // simple logout: clear common token keys and redirect to admin login
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('apiToken');
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('accessToken');
+    } catch (e) {/* ignore */}
+    navigate('/admin/login');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* <AdminHeader isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} /> */}
-      
       <div className="flex">
         <AdminSidebar isOpen={isSidebarOpen} />
-        
+
         <main className="flex-1 ml-0 lg:ml-64 p-6">
           <div className="max-w-7xl mx-auto">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-              <p className="text-gray-600">Manage your CodeSchool educational center</p>
+            {/* top row: title + simple profile / notifications for older users */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-1">Admin Dashboard</h1>
+                <p className="text-gray-600">Manage your CodeSchool educational center</p>
+              </div>
+
+              <div className="flex items-center gap-4">
+                {/* Notification bell */}
+                <div className="relative" ref={notifRef}>
+                  <button
+                    aria-label="Notifications"
+                    onClick={() => setIsNotifOpen(v => !v)}
+                    className="relative p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                    title="Notifications"
+                  >
+                    {/* bell icon (simple SVG) */}
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118.6 14.6V11a6 6 0 10-12 0v3.6c0 .538-.214 1.055-.595 1.395L4 17h5m6 0a3 3 0 11-6 0h6z" />
+                    </svg>
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Notifications dropdown */}
+                  {isNotifOpen && (
+                    <div className="absolute right-0 mt-2 w-80 bg-white border rounded-lg shadow-lg z-50" role="dialog" aria-label="Notifications panel">
+                      <div className="flex items-center justify-between px-4 py-3 border-b">
+                        <strong>Notifications</strong>
+                        <button onClick={markAllRead} className="text-sm text-indigo-600 hover:underline">Mark all read</button>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {notifications.length === 0 && (
+                          <div className="p-4 text-sm text-gray-500">No notifications</div>
+                        )}
+                        {notifications.map((n) => (
+                          <div key={n.id} className={`px-4 py-3 border-b cursor-pointer ${n.read ? 'bg-white' : 'bg-indigo-50'}`} onClick={() => markAsRead(n.id)}>
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm text-gray-800">{n.title}</div>
+                              <div className="text-xs text-gray-500 ml-2">{n.time}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="p-3 border-t text-center">
+                        <button onClick={() => { setIsNotifOpen(false); navigate('/admin/notifications'); }} className="text-sm text-indigo-600 hover:underline">View all</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Profile avatar */}
+                <div className="relative" ref={profileRef}>
+                  <button
+                    aria-label="Account menu"
+                    onClick={() => setIsProfileOpen(v => !v)}
+                    className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-300"
+                    title="Account"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-semibold">{initials}</div>
+                    <span className="hidden md:inline-block text-sm text-gray-700">{adminName || 'Admin'}</span>
+                  </button>
+
+                  {/* Profile dropdown */}
+                  {isProfileOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-50" role="menu" aria-label="Account menu">
+                      <button onClick={() => { setIsProfileOpen(false); navigate('/admin/profile'); }} className="w-full text-left px-4 py-3 hover:bg-gray-50">Profile</button>
+                      <button onClick={handleLogout} className="w-full text-left px-4 py-3 hover:bg-gray-50">Logout</button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Overview stats - keep UI exactly same */}

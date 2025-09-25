@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -6,7 +7,7 @@ import {
   bulkCreateAttendance,
   getTeacherGroupDetail,
   getTeacherStudents
-} from "../../../attendance";
+} from "../../../attendance"; // Updated import path
 import { useUser } from "../../../UserContext";
 import React from "react";  
 
@@ -14,8 +15,8 @@ export default function LessonCalendar({ groupId }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
-  const [currentWeek, setCurrentWeek] = useState(0); // 0 = current week, 1 = next week, -1 = previous week
-  const [openedDates, setOpenedDates] = useState({}); // Track which future dates are opened
+  const [currentWeek, setCurrentWeek] = useState(0);
+  const [openedDates, setOpenedDates] = useState({});
   const { token } = useUser();
   const [students, setStudents] = useState([]);
   const [attendanceData, setAttendanceData] = useState({});
@@ -28,17 +29,33 @@ export default function LessonCalendar({ groupId }) {
       setLoading(true);
       setError(null);
       try {
-        // Fetch students using teacher-specific endpoint
+        // Fetch group details with students
         const groupData = await getTeacherGroupDetail(groupId, token);
-        setStudents(groupData.students || []);
+        console.log('Group data:', groupData);
+        
+        // Set students - adjust based on actual API response structure
+        if (groupData.students) {
+          setStudents(groupData.students);
+        } else if (groupData.members) {
+          setStudents(groupData.members);
+        } else {
+          // Fallback: fetch students separately
+          const studentsData = await getTeacherStudents(token, groupId);
+          setStudents(studentsData);
+        }
 
-        // Fetch attendance for this group and week
-        const weekStart = new Date();
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1); // Monday
+        // Fetch attendance for current week
+        const weekStart = getWeekStartDate();
         const dateStr = weekStart.toISOString().slice(0, 10);
         const attData = await getAttendanceByGroup(groupId, dateStr, token);
-        setAttendanceData(attData || {});
+        console.log('Attendance data:', attData);
+        
+        // Process attendance data into the format expected by the component
+        const processedAttendance = processAttendanceData(attData);
+        setAttendanceData(processedAttendance);
+        
       } catch (err) {
+        console.error('Error fetching data:', err);
         setError("Failed to load group or attendance data");
       } finally {
         setLoading(false);
@@ -46,12 +63,39 @@ export default function LessonCalendar({ groupId }) {
     }
     fetchData();
   }, [groupId, token, currentWeek]);
-  console.log(students);
-  console.log(attendanceData);
-  
-  
+
+  // Process attendance data from API into component format
+  const processAttendanceData = (apiData) => {
+    const processed = {};
+    if (!apiData || !Array.isArray(apiData)) return processed;
+    
+    apiData.forEach(record => {
+      if (!processed[record.student_id]) {
+        processed[record.student_id] = {};
+      }
+      
+      // Convert date to day of week
+      const recordDate = new Date(record.date);
+      const dayName = days[recordDate.getDay() === 0 ? 6 : recordDate.getDay() - 1]; // Adjust for Monday start
+      
+      processed[record.student_id][dayName] = record.status;
+    });
+    
+    return processed;
+  };
+
+  // Get week start date based on current week offset
+  const getWeekStartDate = () => {
+    const currentDate = new Date();
+    const firstDayOfWeek = new Date(currentDate);
+    const dayOfWeek = currentDate.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Monday as first day
+    firstDayOfWeek.setDate(currentDate.getDate() + diff + currentWeek * 7);
+    return firstDayOfWeek;
+  };
 
   useEffect(() => {
+    // Check for saved dark mode preference
     const savedTheme = localStorage.getItem("darkMode");
     if (savedTheme) {
       setIsDarkMode(savedTheme === "true");
@@ -72,7 +116,7 @@ export default function LessonCalendar({ groupId }) {
     const currentDate = new Date();
     const firstDayOfWeek = new Date(currentDate);
     const dayOfWeek = currentDate.getDay();
-    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Monday as first day
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     firstDayOfWeek.setDate(currentDate.getDate() + diff + currentWeek * 7);
 
     const weekDates = [];
@@ -85,8 +129,6 @@ export default function LessonCalendar({ groupId }) {
   };
 
   const weekDates = getWeekDates();
-
-  // attendanceData is now loaded from API
 
   const isPastDate = (date) => {
     const today = new Date();
@@ -105,38 +147,40 @@ export default function LessonCalendar({ groupId }) {
     return date.toDateString() === today.toDateString();
   };
 
-const toggleAttendance = (studentId, dayIndex) => {
-  const date = weekDates[dayIndex];
-  const isTodayDate = isToday(date);
-  const isPast = isPastDate(date);
-  const isFuture = isFutureDate(date);
+  const toggleAttendance = (studentId, dayIndex) => {
+    const date = weekDates[dayIndex];
+    const isTodayDate = isToday(date);
+    const isPast = isPastDate(date);
+    const isFuture = isFutureDate(date);
 
-  // Only allow toggle if today OR past with edit mode
-  if (!(isTodayDate || (isPast && isEditMode))) return;
+    // Only allow toggle if today OR past with edit mode OR future that's unlocked
+    const dayKey = `${dayIndex}_${currentWeek}`;
+    const isFutureUnlocked = isFuture && openedDates[dayKey];
+    
+    if (!(isTodayDate || (isPast && isEditMode) || isFutureUnlocked)) return;
 
-  setAttendanceData((prev) => {
-    // ensure object exists
-    const studentAttendance = prev[studentId] || {};
-    const current = studentAttendance[days[dayIndex]] || "";
+    setAttendanceData((prev) => {
+      const studentAttendance = prev[studentId] || {};
+      const current = studentAttendance[days[dayIndex]] || "";
 
-    // cycle through states
-    let next = "";
-    if (current === "") next = "present";
-    else if (current === "present") next = "absent";
-    else if (current === "absent") next = "excused";
-    else if (current === "excused") next = "";
+      // Cycle through states: "" -> "present" -> "absent" -> "excused" -> ""
+      let next = "";
+      if (current === "") next = "present";
+      else if (current === "present") next = "absent";
+      else if (current === "absent") next = "excused";
+      else if (current === "excused") next = "";
 
-    setHasChanges(true);
+      setHasChanges(true);
 
-    return {
-      ...prev,
-      [studentId]: {
-        ...studentAttendance, // keep other days safe
-        [days[dayIndex]]: next,
-      },
-    };
-  });
-};
+      return {
+        ...prev,
+        [studentId]: {
+          ...studentAttendance,
+          [days[dayIndex]]: next,
+        },
+      };
+    });
+  };
 
   const toggleDateAccess = (dayIndex) => {
     const date = weekDates[dayIndex];
@@ -153,17 +197,41 @@ const toggleAttendance = (studentId, dayIndex) => {
   const saveChanges = async () => {
     try {
       setLoading(true);
-      await bulkCreateAttendance(attendanceData, token);
+      
+      // Convert attendance data to API format
+      const attendanceRecords = [];
+      Object.keys(attendanceData).forEach(studentId => {
+        Object.keys(attendanceData[studentId]).forEach(dayName => {
+          const status = attendanceData[studentId][dayName];
+          if (status) { // Only save non-empty statuses
+            const dayIndex = days.indexOf(dayName);
+            const date = weekDates[dayIndex];
+            attendanceRecords.push({
+              student_id: parseInt(studentId),
+              group_id: parseInt(groupId),
+              date: date.toISOString().slice(0, 10),
+              status: status
+            });
+          }
+        });
+      });
+
+      await bulkCreateAttendance(attendanceRecords, token);
       setIsEditMode(false);
       setHasChanges(false);
+      
       // Show success feedback
       const successMsg = document.createElement("div");
-      successMsg.className =
-        "fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50";
+      successMsg.className = "fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50";
       successMsg.textContent = "Attendance saved successfully!";
       document.body.appendChild(successMsg);
-      setTimeout(() => document.body.removeChild(successMsg), 3000);
+      setTimeout(() => {
+        if (document.body.contains(successMsg)) {
+          document.body.removeChild(successMsg);
+        }
+      }, 3000);
     } catch (err) {
+      console.error('Save error:', err);
       setError("Failed to save attendance");
     } finally {
       setLoading(false);
@@ -173,28 +241,23 @@ const toggleAttendance = (studentId, dayIndex) => {
   const cancelEdit = () => {
     setIsEditMode(false);
     setHasChanges(false);
-    setOpenedDates({}); // Close all future dates
+    setOpenedDates({});
   };
 
   const changeWeek = (direction) => {
     setCurrentWeek((prev) => prev + direction);
-    setOpenedDates({}); // Reset opened dates when changing weeks
+    setOpenedDates({});
     setIsEditMode(false);
     setHasChanges(false);
   };
 
   const getAttendanceIcon = (status) => {
     switch (status) {
-      case "present":
-        return "✅";
-      case "absent":
-        return "❌";
-      case "excused":
-        return "➖";
-      case "":
-        return "";
-      default:
-        return "";
+      case "present": return "✅";
+      case "absent": return "❌";
+      case "excused": return "➖";
+      case "late": return "⏰";
+      default: return "";
     }
   };
 
@@ -203,21 +266,16 @@ const toggleAttendance = (studentId, dayIndex) => {
       return "text-gray-400 bg-gray-100 cursor-not-allowed opacity-50";
     }
     switch (status) {
-      case "present":
-        return "text-green-600 bg-green-50";
-      case "absent":
-        return "text-red-600 bg-red-50";
-      case "excused":
-        return "text-yellow-600 bg-yellow-50";
-      default:
-        return "text-gray-600 bg-gray-50";
+      case "present": return "text-green-600 bg-green-50";
+      case "absent": return "text-red-600 bg-red-50";
+      case "excused": return "text-yellow-600 bg-yellow-50";
+      case "late": return "text-orange-600 bg-orange-50";
+      default: return "text-gray-600 bg-gray-50";
     }
   };
 
   const getAttendanceStats = () => {
-    let totalPresent = 0,
-      totalAbsent = 0,
-      totalExcused = 0;
+    let totalPresent = 0, totalAbsent = 0, totalExcused = 0, totalLate = 0;
 
     students.forEach((student) => {
       days.forEach((day) => {
@@ -225,59 +283,52 @@ const toggleAttendance = (studentId, dayIndex) => {
         if (status === "present") totalPresent++;
         else if (status === "absent") totalAbsent++;
         else if (status === "excused") totalExcused++;
+        else if (status === "late") totalLate++;
       });
     });
 
-    const total = totalPresent + totalAbsent + totalExcused;
-    const attendanceRate =
-      total > 0 ? Math.round((totalPresent / total) * 100) : 0;
+    const total = totalPresent + totalAbsent + totalExcused + totalLate;
+    const attendanceRate = total > 0 ? Math.round((totalPresent / total) * 100) : 0;
 
-    return { attendanceRate, totalPresent, totalAbsent, totalExcused };
+    return { attendanceRate, totalPresent, totalAbsent, totalExcused, totalLate };
   };
 
   const stats = getAttendanceStats();
 
   if (loading) {
     return (
-      <div
-        className={
-          isDarkMode
-            ? "bg-gray-800 border-gray-700"
-            : "bg-white border-gray-200"
-        }
-      >
-        Loading attendance...
+      <div className={`${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} rounded-xl shadow-lg border`}>
+        <div className="p-8 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className={`mt-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>Loading attendance...</p>
+        </div>
       </div>
     );
   }
+
   if (error) {
     return (
-      <div
-        className={
-          isDarkMode
-            ? "bg-gray-800 border-gray-700"
-            : "bg-white border-gray-200"
-        }
-      >
-        {error}
+      <div className={`${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} rounded-xl shadow-lg border`}>
+        <div className="p-8 text-center">
+          <p className={`text-red-500 ${isDarkMode ? 'text-red-400' : 'text-red-600'}`}>{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
+
   return (
-    <div
-      className={`${
-        isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"
-      } rounded-xl shadow-lg border`}
-    >
+    <div className={`${isDarkMode ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"} rounded-xl shadow-lg border`}>
       {/* Header with Stats and Controls */}
       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center space-x-4">
-            <h3
-              className={`text-lg font-semibold ${
-                isDarkMode ? "text-white" : "text-gray-900"
-              }`}
-            >
+            <h3 className={`text-lg font-semibold ${isDarkMode ? "text-white" : "text-gray-900"}`}>
               Weekly Attendance Management
             </h3>
 
@@ -291,23 +342,17 @@ const toggleAttendance = (studentId, dayIndex) => {
                     : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
                 }`}
               >
-                <i className="ri-arrow-left-line w-4 h-4 flex items-center justify-center"></i>
+                ←
               </button>
 
-              <span
-                className={`text-sm px-3 py-1 rounded-lg ${
-                  isDarkMode
-                    ? "bg-gray-700 text-gray-300"
-                    : "bg-gray-100 text-gray-700"
-                }`}
-              >
+              <span className={`text-sm px-3 py-1 rounded-lg ${
+                  isDarkMode ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-700"
+                }`}>
                 {currentWeek === 0
                   ? "This Week"
                   : currentWeek > 0
                   ? `${currentWeek} Week${currentWeek > 1 ? "s" : ""} Ahead`
-                  : `${Math.abs(currentWeek)} Week${
-                      Math.abs(currentWeek) > 1 ? "s" : ""
-                    } Ago`}
+                  : `${Math.abs(currentWeek)} Week${Math.abs(currentWeek) > 1 ? "s" : ""} Ago`}
               </span>
 
               <button
@@ -318,17 +363,13 @@ const toggleAttendance = (studentId, dayIndex) => {
                     : "hover:bg-gray-100 text-gray-500 hover:text-gray-700"
                 }`}
               >
-                <i className="ri-arrow-right-line w-4 h-4 flex items-center justify-center"></i>
+                →
               </button>
             </div>
           </div>
 
           <div className="flex items-center space-x-3">
-            <div
-              className={`text-sm ${
-                isDarkMode ? "text-gray-400" : "text-gray-600"
-              }`}
-            >
+            <div className={`text-sm ${isDarkMode ? "text-gray-400" : "text-gray-600"}`}>
               {weekDates[0].toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
@@ -343,17 +384,14 @@ const toggleAttendance = (studentId, dayIndex) => {
 
             {/* Edit/Save Controls */}
             <div className="flex items-center space-x-2">
-              {/* Always show Edit Mode button if not in edit mode and no unsaved changes */}
               {!isEditMode && !hasChanges && (
                 <button
                   onClick={() => setIsEditMode(true)}
                   className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors whitespace-nowrap"
                 >
-                  <i className="ri-edit-line w-4 h-4 flex items-center justify-center mr-1"></i>
                   Edit Mode
                 </button>
               )}
-              {/* Show Save/Cancel if there are unsaved changes (even if not in edit mode) */}
               {hasChanges && (
                 <>
                   <button
@@ -368,14 +406,8 @@ const toggleAttendance = (studentId, dayIndex) => {
                   </button>
                   <button
                     onClick={saveChanges}
-                    className={`px-3 py-1.5 text-sm rounded-lg transition-colors whitespace-nowrap ${
-                      hasChanges
-                        ? "bg-green-600 text-white hover:bg-green-700"
-                        : "bg-gray-400 text-white cursor-not-allowed"
-                    }`}
-                    disabled={!hasChanges}
+                    className="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors whitespace-nowrap"
                   >
-                    <i className="ri-save-line w-4 h-4 flex items-center justify-center mr-1"></i>
                     Save Changes
                   </button>
                 </>
@@ -388,10 +420,8 @@ const toggleAttendance = (studentId, dayIndex) => {
         {isEditMode && (
           <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
             <div className="flex items-center text-blue-800">
-              <i className="ri-edit-line w-4 h-4 flex items-center justify-center mr-2"></i>
               <span className="text-sm font-medium">
-                Edit Mode Active - Click attendance marks to modify. Future
-                dates must be unlocked first.
+                Edit Mode Active - Click attendance marks to modify. Future dates must be unlocked first.
               </span>
               {hasChanges && (
                 <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">
@@ -404,82 +434,38 @@ const toggleAttendance = (studentId, dayIndex) => {
 
         {/* Quick Stats */}
         <div className="grid grid-cols-4 gap-3 text-xs">
-          <div
-            className={`text-center p-2 rounded ${
-              isDarkMode ? "bg-gray-700" : "bg-gray-50"
-            }`}
-          >
-            <div
-              className={`font-bold text-lg ${
-                isDarkMode ? "text-white" : "text-gray-900"
-              }`}
-            >
+          <div className={`text-center p-2 rounded ${isDarkMode ? "bg-gray-700" : "bg-gray-50"}`}>
+            <div className={`font-bold text-lg ${isDarkMode ? "text-white" : "text-gray-900"}`}>
               {students.length}
             </div>
-            <div className={isDarkMode ? "text-gray-400" : "text-gray-600"}>
-              Total Students
-            </div>
+            <div className={isDarkMode ? "text-gray-400" : "text-gray-600"}>Total Students</div>
           </div>
-          <div
-            className={`text-center p-2 rounded ${
-              isDarkMode ? "bg-green-900" : "bg-green-50"
-            }`}
-          >
-            <div
-              className={`font-bold text-lg ${
-                isDarkMode ? "text-green-400" : "text-green-600"
-              }`}
-            >
+          <div className={`text-center p-2 rounded ${isDarkMode ? "bg-green-900" : "bg-green-50"}`}>
+            <div className={`font-bold text-lg ${isDarkMode ? "text-green-400" : "text-green-600"}`}>
               {stats.attendanceRate}%
             </div>
-            <div className={isDarkMode ? "text-green-300" : "text-green-600"}>
-              Week Average
-            </div>
+            <div className={isDarkMode ? "text-green-300" : "text-green-600"}>Week Average</div>
           </div>
-          <div
-            className={`text-center p-2 rounded ${
-              isDarkMode ? "bg-blue-900" : "bg-blue-50"
-            }`}
-          >
-            <div
-              className={`font-bold text-lg ${
-                isDarkMode ? "text-blue-400" : "text-blue-600"
-              }`}
-            >
-              Ali M.
+          <div className={`text-center p-2 rounded ${isDarkMode ? "bg-blue-900" : "bg-blue-50"}`}>
+            <div className={`font-bold text-lg ${isDarkMode ? "text-blue-400" : "text-blue-600"}`}>
+              {stats.totalPresent}
             </div>
-            <div className={isDarkMode ? "text-blue-300" : "text-blue-600"}>
-              Best Attendance
-            </div>
+            <div className={isDarkMode ? "text-blue-300" : "text-blue-600"}>Present</div>
           </div>
-          <div
-            className={`text-center p-2 rounded ${
-              isDarkMode ? "bg-orange-900" : "bg-orange-50"
-            }`}
-          >
-            <div
-              className={`font-bold text-lg ${
-                isDarkMode ? "text-orange-400" : "text-orange-600"
-              }`}
-            >
-              Jasur I.
+          <div className={`text-center p-2 rounded ${isDarkMode ? "bg-red-900" : "bg-red-50"}`}>
+            <div className={`font-bold text-lg ${isDarkMode ? "text-red-400" : "text-red-600"}`}>
+              {stats.totalAbsent}
             </div>
-            <div className={isDarkMode ? "text-orange-300" : "text-orange-600"}>
-              Needs Attention
-            </div>
+            <div className={isDarkMode ? "text-red-300" : "text-red-600"}>Absent</div>
           </div>
         </div>
       </div>
 
-      {/* Calendar Grid - Enhanced */}
+      {/* Calendar Grid */}
       <div className="p-2">
         <div className="grid grid-cols-8 gap-1 text-xs">
           {/* Header */}
-          <div
-            className={`p-2 font-medium ${
-              isDarkMode ? "text-gray-300" : "text-gray-700"
-            }`}
-          >
+          <div className={`p-2 font-medium ${isDarkMode ? "text-gray-300" : "text-gray-700"}`}>
             Student
           </div>
           {days.map((day, dayIndex) => {
@@ -505,42 +491,33 @@ const toggleAttendance = (studentId, dayIndex) => {
                     : "text-gray-700"
                 }`}
                 onClick={() => toggleDateAccess(dayIndex)}
-                title={
-                  isFuture && !isOpened
-                    ? "Click to unlock this date for editing"
-                    : ""
-                }
+                title={isFuture && !isOpened ? "Click to unlock this date for editing" : ""}
               >
                 <div>{day}</div>
                 <div className="text-xs opacity-75">{date.getDate()}</div>
-                {isFuture && !isOpened && (
-                  <i className="ri-lock-line w-3 h-3 flex items-center justify-center mx-auto mt-1"></i>
-                )}
-                {isFuture && isOpened && (
-                  <i className="ri-lock-unlock-line w-3 h-3 flex items-center justify-center mx-auto mt-1"></i>
-                )}
+                {isFuture && !isOpened && <div className="text-xs">🔒</div>}
+                {isFuture && isOpened && <div className="text-xs">🔓</div>}
               </div>
             );
           })}
 
-          {/* Student Rows - Enhanced */}
+          {/* Student Rows */}
           {students.map((student) => (
             <React.Fragment key={student.id}>
               <div
-                key={student.id}
                 className={`p-1 text-xs font-medium truncate ${
                   isDarkMode ? "text-gray-300" : "text-gray-700"
                 }`}
-                title={student.name}
+                title={student.first_name + ' ' + (student.last_name || '')}
               >
-                {student.first_name||  ""}
-
+                {student.first_name || student.name || `Student ${student.id}`}
               </div>
               {days.map((day, dayIndex) => {
                 const date = weekDates[dayIndex];
                 const isTodayDate = isToday(date);
                 const isPast = isPastDate(date);
                 const isFuture = isFutureDate(date);
+                const dayKey = `${dayIndex}_${currentWeek}`;
 
                 let isDisabled = false;
                 if (isTodayDate) {
@@ -548,11 +525,11 @@ const toggleAttendance = (studentId, dayIndex) => {
                 } else if (isPast) {
                   isDisabled = !isEditMode;
                 } else if (isFuture) {
-                  isDisabled = true;
+                  isDisabled = !openedDates[dayKey];
                 }
 
                 const studentAttendance = attendanceData[student.id] || {};
-                const dayValue = studentAttendance[day] ?? null;
+                const dayValue = studentAttendance[day] || "";
 
                 return (
                   <button
@@ -567,13 +544,7 @@ const toggleAttendance = (studentId, dayIndex) => {
                         : "cursor-default"
                     }`}
                     title={`${student.first_name} - ${day}: ${dayValue || "—"} ${
-                      !isDisabled
-                        ? "(Click to change)"
-                        : isFuture
-                        ? "(Future date - locked)"
-                        : isPast && !isEditMode
-                        ? "(Past date - click Edit Mode to change)"
-                        : ""
+                      !isDisabled ? "(Click to change)" : "(Disabled)"
                     }`}
                     disabled={isDisabled}
                   >
@@ -584,62 +555,39 @@ const toggleAttendance = (studentId, dayIndex) => {
             </React.Fragment>
           ))}
         </div>
-
-        {/* {students.length > 8 && (
-          <button 
-            onClick={() => setShowStudents(true)}
-            className={`w-full mt-2 p-2 text-xs border-t transition-colors ${
-              isDarkMode 
-                ? 'border-gray-600 text-gray-400 hover:text-gray-300 hover:bg-gray-700' 
-                : 'border-gray-200 text-gray-600 hover:text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            Show {students.length - 8} more students...
-          </button>
-        )} */}
       </div>
 
       {/* Legend */}
-      <div
-        className={`px-4 py-2 border-t ${
-          isDarkMode
-            ? "border-gray-700 bg-gray-750"
-            : "border-gray-200 bg-gray-50"
-        }`}
-      >
+      <div className={`px-4 py-2 border-t ${
+          isDarkMode ? "border-gray-700 bg-gray-750" : "border-gray-200 bg-gray-50"
+        }`}>
         <div className="flex items-center justify-between text-xs">
           <div className="flex items-center space-x-4">
             <div className="flex items-center">
               <span className="mr-1">✅</span>
-              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-                Present
-              </span>
+              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>Present</span>
             </div>
             <div className="flex items-center">
               <span className="mr-1">❌</span>
-              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-                Absent
-              </span>
+              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>Absent</span>
             </div>
             <div className="flex items-center">
               <span className="mr-1">➖</span>
-              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-                Excused
-              </span>
+              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>Excused</span>
+            </div>
+            <div className="flex items-center">
+              <span className="mr-1">⏰</span>
+              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>Late</span>
             </div>
           </div>
           <div className="flex items-center space-x-3">
             <div className="flex items-center">
-              <i className="ri-lock-line w-3 h-3 flex items-center justify-center mr-1"></i>
-              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-                Locked Future Date
-              </span>
+              <span className="mr-1">🔒</span>
+              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>Locked Future Date</span>
             </div>
             <div className="flex items-center">
-              <i className="ri-lock-unlock-line w-3 h-3 flex items-center justify-center mr-1"></i>
-              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>
-                Unlocked for Editing
-              </span>
+              <span className="mr-1">🔓</span>
+              <span className={isDarkMode ? "text-gray-300" : "text-gray-600"}>Unlocked for Editing</span>
             </div>
           </div>
         </div>

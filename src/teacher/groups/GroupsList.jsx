@@ -31,7 +31,7 @@ export default function GroupsList() {
       setLoading(true);
       setError(null);
       try {
-  const res = await fetch('https://sanjar1718.pythonanywhere.com/api/auth/groups/', {
+  const res = await fetch('https://sanjar1718.pythonanywhere.com/api/groups/', {
           headers: { 'Authorization': `Token ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch groups');
