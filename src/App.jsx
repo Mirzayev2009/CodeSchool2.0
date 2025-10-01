@@ -75,10 +75,10 @@ function App() {
         <Route path="*" element={<NotFound />} />
 
         {/* admin routes */}
-        <Route path="/admin" element={<AdminDashboard/>} />
+        <Route path="/admin/dashboard" element={<AdminDashboard/>} />
         <Route path="/admin/teachers" element={<TeachersManagement/>} /> 
         <Route path="/admin/students" element={<StudentsManagement/>} /> 
-        <Route path="/admin/payment" element={<PaymentAdminPage/>} /> 
+        <Route path="/admin/payment" element={<PaymentAdminPage/>} />   
         <Route path="/admin/settings" element={<AdminSettingsPage/>} /> 
         <Route path="/admin/courses" element={<Courses/>} /> 
         <Route path="/admin/courses/create" element={<CourseCreate/>} /> 

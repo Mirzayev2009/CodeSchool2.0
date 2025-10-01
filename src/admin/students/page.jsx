@@ -1,26 +1,34 @@
-// src/admin/students/StudentsManagement.jsx
+// src/admin/students/StudentsManagement.uz.jsx
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminSidebar from '../../../components/AdminSidebar';
-import StudentsTable from './StudentsTable';
-import StudentsFilters from './StudentsFilters';
 import {
   getStudents as apiGetStudents,
   deleteStudent as apiDeleteStudent,
   patchStudent as apiPatchStudent,
+  getGroups as apiGetGroups,
 } from '../API/AdminPanelApi';
+import StudentsFilters from './StudentsFilters';
+import StudentsTable from './StudentsTable';
+
+// This file bundles StudentsManagement + StudentsFilters + StudentsTable
+// - UI text is translated to Uzbek (Latin)
+// - Classes (guruhlar/sinf) list in filters is loaded from backend via getGroups()
+// - filterAttendanceStatus state was added and wired through
 
 export default function StudentsManagement() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterClass, setFilterClass] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterAttendanceStatus, setFilterAttendanceStatus] = useState('');
 
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [classesList, setClassesList] = useState(['Barcha sinflar']);
 
   // normalize backend student shape to the UI shape used in table
   const normalizeStudent = (s) => {
@@ -42,7 +50,10 @@ export default function StudentsManagement() {
     else if (typeof s.group === 'string' && s.group.trim()) className = s.group;
     else if (Array.isArray(s.groups) && s.groups.length) {
       // try to map objects to titles
-      className = s.groups.map((g) => (typeof g === 'string' ? g : (g.title ?? g.name ?? '') )).filter(Boolean).join(', ');
+      className = s.groups
+        .map((g) => (typeof g === 'string' ? g : (g.title ?? g.name ?? '')))
+        .filter(Boolean)
+        .join(', ');
     }
     // status normalization
     let status = '';
@@ -85,7 +96,6 @@ export default function StudentsManagement() {
       else if (res && Array.isArray(res.data)) list = res.data;
       else if (res && typeof res === 'object' && Object.keys(res).length === 0) list = [];
       else if (res && typeof res === 'object') {
-        // when API returns single object or unknown shape — try to find array fields
         if (Array.isArray(res.students)) list = res.students;
         else if (Array.isArray(res.items)) list = res.items;
         else list = [];
@@ -93,8 +103,56 @@ export default function StudentsManagement() {
 
       const normalized = list.map(normalizeStudent).filter(Boolean);
       setStudents(normalized);
+
+      // after students loaded try to fetch classes/guruhlar from backend
+      try {
+        const groupsRes = await apiGetGroups(token);
+        let groupsList = [];
+        if (Array.isArray(groupsRes)) groupsList = groupsRes;
+        else if (groupsRes && Array.isArray(groupsRes.results)) groupsList = groupsRes.results;
+        else if (groupsRes && Array.isArray(groupsRes.data)) groupsList = groupsRes.data;
+        else if (groupsRes && Array.isArray(groupsRes.groups)) groupsList = groupsRes.groups;
+        else groupsList = [];
+
+        const names = groupsList
+          .map((g) => (typeof g === 'string' ? g : g.title ?? g.name ?? g.course_name ?? g.group_name ?? ''))
+          .filter(Boolean);
+
+        if (names.length) {
+          setClassesList(['Barcha sinflar', ...Array.from(new Set(names))]);
+        } else {
+          // fallback: derive from students
+          const derived = new Set();
+          normalized.forEach((s) => {
+            if (s.class) derived.add(s.class);
+            else if (s.__raw?.group) derived.add(s.__raw.group);
+            else if (Array.isArray(s.__raw?.groups)) {
+              s.__raw.groups.forEach((g) => {
+                const label = typeof g === 'string' ? g : (g.title ?? g.name ?? null);
+                if (label) derived.add(label);
+              });
+            }
+          });
+          setClassesList(['Barcha sinflar', ...Array.from(derived)]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch groups:', err);
+        // fallback: derive from students
+        const derived = new Set();
+        normalized.forEach((s) => {
+          if (s.class) derived.add(s.class);
+          else if (s.__raw?.group) derived.add(s.__raw.group);
+          else if (Array.isArray(s.__raw?.groups)) {
+            s.__raw.groups.forEach((g) => {
+              const label = typeof g === 'string' ? g : (g.title ?? g.name ?? null);
+              if (label) derived.add(label);
+            });
+          }
+        });
+        setClassesList(['Barcha sinflar', ...Array.from(derived)]);
+      }
     } catch (err) {
-      setError('Failed to load students');
+      setError("Talabalarni yuklashda xato yuz berdi");
       setStudents([]);
       console.error(err);
     } finally {
@@ -108,14 +166,14 @@ export default function StudentsManagement() {
   }, []);
 
   const handleDelete = async (id) => {
-    if (!confirm('Delete this student?')) return;
+    if (!confirm("Ushbu talabani o'chirmoqchimisiz?")) return;
     const token = localStorage.getItem('token');
     try {
       await apiDeleteStudent(id, token);
       setStudents((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       console.error('deleteStudent error', err);
-      alert('Failed to delete student. See console for details.');
+      alert("Talabani o'chirish muvaffaqiyatsiz tugadi. Batamom tafsilotlar konsolda.");
     }
   };
 
@@ -126,34 +184,17 @@ export default function StudentsManagement() {
     const currentActive = student.__raw?.active ?? (student.status === 'Active' ? true : (student.status === 'Inactive' ? false : undefined));
     const newActive = !(currentActive === true);
     try {
-      // patch both possible fields to be safe (backend may accept either)
       await apiPatchStudent(id, { active: newActive, is_active: newActive }, token);
       setStudents((prev) =>
         prev.map((s) => (s.id === id ? { ...s, status: newActive ? 'Active' : 'Inactive', __raw: { ...(s.__raw || {}), active: newActive } } : s))
       );
     } catch (err) {
       console.error('patchStudent error', err);
-      alert('Failed to update student status. See console.');
+      alert("Talaba holatini yangilashda xato yuz berdi. Konsolga qarang.");
     }
   };
 
   const refresh = () => fetchStudents();
-
-  // derive classes list for filters (keeps UI same but makes dropdown reflect backend data)
-  const classesList = useMemo(() => {
-    const setC = new Set();
-    students.forEach((s) => {
-      if (s.class) setC.add(s.class);
-      else if (s.__raw?.group) setC.add(s.__raw.group);
-      else if (Array.isArray(s.__raw?.groups)) {
-        s.__raw.groups.forEach((g) => {
-          const label = typeof g === 'string' ? g : (g.title ?? g.name ?? null);
-          if (label) setC.add(label);
-        });
-      }
-    });
-    return Array.from(setC);
-  }, [students]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -164,33 +205,36 @@ export default function StudentsManagement() {
           <div className="max-w-7xl mx-auto">
             <div className="flex justify-between items-center mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Students Management</h1>
-                <p className="text-gray-600 mt-1">Manage all student records and enrollments</p>
+                <h1 className="text-3xl font-bold text-gray-900">Talabalar boshqaruvi</h1>
+                <p className="text-gray-600 mt-1">Barcha talabalar yozuvlari va ro'yxatga olishlarni boshqaring</p>
               </div>
               <Link
                 to="/admin/students/add"
                 className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium whitespace-nowrap flex items-center"
               >
                 <i className="ri-user-add-line w-5 h-5 flex items-center justify-center mr-2"></i>
-                Add New Student
+                Yangi talaba qo'shish
               </Link>
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100">
               <StudentsFilters
+                classesList={classesList}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
                 filterClass={filterClass}
                 setFilterClass={setFilterClass}
                 filterStatus={filterStatus}
                 setFilterStatus={setFilterStatus}
-                // keep UI same: we do not alter props signature, but we can optionally pass dynamic classes if you wire it later
+                filterAttendanceStatus={filterAttendanceStatus}
+                setFilterAttendanceStatus={setFilterAttendanceStatus}
               />
 
               <StudentsTable
                 searchTerm={searchTerm}
                 filterClass={filterClass}
                 filterStatus={filterStatus}
+                filterAttendanceStatus={filterAttendanceStatus}
                 students={students}
                 loading={loading}
                 onDelete={handleDelete}

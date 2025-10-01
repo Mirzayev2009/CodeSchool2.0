@@ -1,52 +1,51 @@
-
-// lessonApi.js - MISSING FILE (created based on Swagger)
+// src/lessonApi.js
 const BASE_URL = 'https://sanjar1718.pythonanywhere.com';
 
-export async function getLessons(token) {
-  const response = await fetch(`${BASE_URL}/api/lessons/`, {
-    headers: { 'Authorization': `Token ${token}` }
+async function request(path, token, { method = 'GET', body = null, signal = undefined, headers = {} } = {}) {
+  const hdrs = {
+    Accept: 'application/json',
+    ...headers,
+  };
+  if (token) {
+    hdrs['Authorization'] = `Token ${token}`;
+  }
+  if (body && !(body instanceof FormData)) {
+    hdrs['Content-Type'] = 'application/json';
+    body = JSON.stringify(body);
+  }
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers: hdrs,
+    body,
+    signal,
+    // mode: 'cors' // optional, fetch defaults ok in most cases
   });
-  if (!response.ok) throw new Error('Failed to fetch lessons');
-  return response.json();
+
+  const text = await res.text();
+  let data = null;
+  try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
+
+  if (!res.ok) {
+    const err = new Error(`Request failed (${res.status} ${res.statusText})`);
+    err.status = res.status;
+    err.body = data;
+    throw err;
+  }
+  return data;
 }
 
-export async function getLesson(id, token) {
-  const response = await fetch(`${BASE_URL}/api/lessons/${id}/`, {
-    headers: { 'Authorization': `Token ${token}` }
-  });
-  if (!response.ok) throw new Error('Failed to fetch lesson');
-  return response.json();
+export function getLessons(token, options = {}) { return request('/api/lessons/', token, options); }
+export function getLesson(id, token, options = {}) { return request(`/api/lessons/${id}/`, token, options); }
+export function getLessonHomework(lessonId, token, options = {}) {
+  return request(`/api/lessons/${lessonId}/homework/`, token, options);
 }
-
-export async function getLessonHomework(lessonId, token) {
-  const response = await fetch(`${BASE_URL}/api/lessons/${lessonId}/homework/`, {
-    headers: { 'Authorization': `Token ${token}` }
-  });
-  if (!response.ok) throw new Error('Failed to fetch lesson homework');
-  return response.json();
+export function getLessonHomeworkTasks(homeworkId, token, options = {}) {
+  return request(`/api/homework/${homeworkId}/tasks/`, token, options);
 }
-
-// This function should get homework tasks for a specific homework assignment
-export async function getLessonHomeworkTasks(homeworkId, token) {
-  const response = await fetch(`${BASE_URL}/api/homework/${homeworkId}/tasks/`, {
-    headers: { 'Authorization': `Token ${token}` }
-  });
-  if (!response.ok) throw new Error('Failed to fetch homework tasks');
-  return response.json();
+export function getMyLessons(token, options = {}) {
+  return request('/api/lessons/my_lessons/', token, options);
 }
-
-export async function getMyLessons(token) {
-  const response = await fetch(`${BASE_URL}/api/lessons/my_lessons/`, {
-    headers: { 'Authorization': `Token ${token}` }
-  });
-  if (!response.ok) throw new Error('Failed to fetch my lessons');
-  return response.json();
-}
-
-export async function searchLessons(query, token) {
-  const response = await fetch(`${BASE_URL}/api/lessons/search/?search=${encodeURIComponent(query)}`, {
-    headers: { 'Authorization': `Token ${token}` }
-  });
-  if (!response.ok) throw new Error('Failed to search lessons');
-  return response.json();
+export function searchLessons(query, token, options = {}) {
+  return request(`/api/lessons/search/?search=${encodeURIComponent(query)}`, token, options);
 }

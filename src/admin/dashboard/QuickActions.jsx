@@ -6,25 +6,25 @@ import { Link } from 'react-router-dom';
 export default function QuickActions() {
   const actions = [
     {
-      name: 'Add New Student',
+      name: 'Yangi o\'quvchi qo\'shish',
       to: '/admin/students/add',
       icon: 'ri-user-add-line',
       color: 'blue'
     },
     {
-      name: 'Add New Teacher',
+      name: 'Yangi o\'qituvchi qo\'shish',
       to: '/admin/teachers/add',
       icon: 'ri-user-star-line',
       color: 'green'
     },
     {
-      name: 'Create New Class',
+      name: 'yangi sinf yaratish',
       to: '/admin/classes/create',
       icon: 'ri-group-line',
       color: 'purple'
     },
     {
-      name: 'Create Course',
+      name: 'Yangi fan qo\'shish',
       to: '/admin/courses/create',
       icon: 'ri-calendar-event-line',
       color: 'orange'

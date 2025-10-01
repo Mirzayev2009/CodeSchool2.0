@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import AdminSidebar from '../../../components/AdminSidebar';
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import AdminSidebar from "../../../components/AdminSidebar";
 
 // import your API helper (already exists in your project)
 import {
@@ -10,22 +10,22 @@ import {
   getCourse,
   createCourse,
   updateCourse,
-} from '../API/AdminPanelApi';
+} from "../API/AdminPanelApi";
 
 export default function CourseCreate() {
   const [isSidebarOpen] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
-  const editingId = params.get('id');
+  const editingId = params.get("id");
 
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [form, setForm] = useState({
-    uz: '',
-    ru: '',
-    price: '',
-    address: '',
-    description: '',
+    uz: "",
+    ru: "",
+    price: "",
+    address: "",
+    description: "",
     active: true,
     image: null, // base64 string
   });
@@ -34,22 +34,22 @@ export default function CourseCreate() {
   useEffect(() => {
     if (editingId) {
       setLoadingExisting(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       getCourse(editingId, token)
         .then((data) => {
           setForm({
-            uz: data.uz || '',
-            ru: data.ru || '',
-            price: data.price || '',
-            address: data.address || '',
-            description: data.description || '',
+            uz: data.uz || "",
+            ru: data.ru || "",
+            price: data.price || "",
+            address: data.address || "",
+            description: data.description || "",
             active: !!data.active,
             image: data.image || null,
           });
         })
         .catch((err) => {
-          console.error('Failed to load course', err);
-          alert('Xatolik: kurs yuklanmadi');
+          console.error("Failed to load course", err);
+          alert("Xatolik: kurs yuklanmadi");
         })
         .finally(() => setLoadingExisting(false));
     }
@@ -57,37 +57,37 @@ export default function CourseCreate() {
 
   const addresses = [
     "Iftixor ko'chasi, Yunusobod tumani, Toshkent",
-    'Yunusobod 19-kvartal',
-    'Boshqa manzil',
+    "Yunusobod 19-kvartal",
+    "Boshqa manzil",
   ];
 
   const setField = (k, v) => setForm((s) => ({ ...s, [k]: v }));
 
   const handleImage = (file) => {
     if (!file) {
-      setField('image', null);
+      setField("image", null);
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => setField('image', reader.result);
+    reader.onload = () => setField("image", reader.result);
     reader.readAsDataURL(file);
   };
 
   const validate = () => {
     if (!form.uz.trim()) {
-      alert('Darslik nomi (Uz) required');
+      alert("Darslik nomi (Uz) majburiy.");
       return false;
     }
     if (!form.ru.trim()) {
-      alert('Darslik nomi (Ru) required');
+      alert("Darslik nomi (Ru) majburiy.");
       return false;
     }
     if (!form.price || Number(form.price) <= 0) {
-      alert('Narxi should be a positive number');
+      alert("Narx musbat son bo'lishi kerak.");
       return false;
     }
     if (!form.address) {
-      alert('Manzil required');
+      alert("Manzil majburiy.");
       return false;
     }
     return true;
@@ -95,43 +95,52 @@ export default function CourseCreate() {
 
   const handleSave = async (stay = false) => {
     if (!validate()) return;
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     try {
       if (editingId) {
-        await updateCourse(editingId, { ...form, price: Number(form.price) }, token);
+        await updateCourse(
+          editingId,
+          { ...form, price: Number(form.price) },
+          token
+        );
         if (stay) {
-          alert('Saved');
+          alert("Saqlandi");
         } else {
-          navigate('/admin/courses');
+          navigate("/admin/courses");
         }
       } else {
         await createCourse(
-          { ...form, price: Number(form.price), createdAt: new Date().toISOString().slice(0, 10) },
+          {
+            ...form,
+            price: Number(form.price),
+            createdAt: new Date().toISOString().slice(0, 10),
+          },
           token
         );
         if (stay) {
           setForm({
-            uz: '',
-            ru: '',
-            price: '',
-            address: '',
-            description: '',
+            uz: "",
+            ru: "",
+            price: "",
+            address: "",
+            description: "",
             active: true,
             image: null,
           });
-          alert('Saved — you can add another');
+          alert("Saqlandi — endi boshqa qo'shishingiz mumkin");
         } else {
-          navigate('/admin/courses');
+          navigate("/admin/courses");
         }
       }
     } catch (err) {
-      console.error('Failed to save course', err);
-      alert('Xatolik: kurs saqlanmadi');
+      console.error("Failed to save course", err);
+      alert("Xatolik: kurs saqlanmadi");
     }
   };
 
   const handleCancel = () => {
-    if (confirm('Discard changes?')) navigate('/admin/courses');
+    if (confirm("O'zgartirishlarni bekor qilasizmi?"))
+      navigate("/admin/courses");
   };
 
   return (
@@ -143,27 +152,33 @@ export default function CourseCreate() {
           <div className="max-w-3xl mx-auto">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900">
-                {editingId ? 'Edit Course' : 'Yangi darslik qo‘shish'}
+                {editingId ? "Darslikni tahrirlash" : "Yangi darslik qo‘shish"}
               </h1>
-              <p className="text-sm text-gray-600">Fill required fields and save.</p>
+              <p className="text-sm text-gray-600">
+                Kerakli maydonlarni to'ldiring va saqlang.
+              </p>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm text-gray-700">Darslik nomi (Uz) *</label>
+                  <label className="text-sm text-gray-700">
+                    Darslik nomi (Uz) *
+                  </label>
                   <input
                     value={form.uz}
-                    onChange={(e) => setField('uz', e.target.value)}
+                    onChange={(e) => setField("uz", e.target.value)}
                     className="mt-1 w-full px-3 py-2 border rounded-md"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm text-gray-700">Darslik nomi (Ru) *</label>
+                  <label className="text-sm text-gray-700">
+                    Darslik nomi (Ru) *
+                  </label>
                   <input
                     value={form.ru}
-                    onChange={(e) => setField('ru', e.target.value)}
+                    onChange={(e) => setField("ru", e.target.value)}
                     className="mt-1 w-full px-3 py-2 border rounded-md"
                   />
                 </div>
@@ -173,7 +188,7 @@ export default function CourseCreate() {
                   <input
                     type="number"
                     value={form.price}
-                    onChange={(e) => setField('price', e.target.value)}
+                    onChange={(e) => setField("price", e.target.value)}
                     className="mt-1 w-full px-3 py-2 border rounded-md"
                   />
                 </div>
@@ -182,7 +197,7 @@ export default function CourseCreate() {
                   <label className="text-sm text-gray-700">Manzil *</label>
                   <select
                     value={form.address}
-                    onChange={(e) => setField('address', e.target.value)}
+                    onChange={(e) => setField("address", e.target.value)}
                     className="mt-1 w-full px-3 py-2 border rounded-md"
                   >
                     <option value="">Manzilni tanlang</option>
@@ -199,7 +214,7 @@ export default function CourseCreate() {
                 <label className="text-sm text-gray-700">Izoh</label>
                 <textarea
                   value={form.description}
-                  onChange={(e) => setField('description', e.target.value)}
+                  onChange={(e) => setField("description", e.target.value)}
                   rows={6}
                   className="mt-1 w-full px-3 py-2 border rounded-md"
                   placeholder="Shu yerda yozishni boshlang..."
@@ -208,7 +223,9 @@ export default function CourseCreate() {
 
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
                 <div>
-                  <label className="text-sm text-gray-700">Rasm (optional)</label>
+                  <label className="text-sm text-gray-700">
+                    Rasm (ixtiyoriy)
+                  </label>
                   <input
                     type="file"
                     accept="image/*"
@@ -227,21 +244,23 @@ export default function CourseCreate() {
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-sm text-gray-700">Status</div>
-                      <div className="text-xs text-gray-500">Toggle course active state</div>
+                      <div className="text-sm text-gray-700">Holat</div>
+                      <div className="text-xs text-gray-500">
+                        Kursning faol holatini o'zgartirish
+                      </div>
                     </div>
                     <label className="inline-flex items-center">
                       <input
                         type="checkbox"
                         checked={form.active}
-                        onChange={(e) => setField('active', e.target.checked)}
+                        onChange={(e) => setField("active", e.target.checked)}
                         className="h-5 w-5"
                       />
                     </label>
                   </div>
 
                   <div className="text-xs text-gray-500">
-                    Created date will be set automatically for new courses.
+                    Yangi darslik uchun yaratilgan sana avtomatik belgilanadi.
                   </div>
                 </div>
               </div>
@@ -259,7 +278,7 @@ export default function CourseCreate() {
                   onClick={() => handleSave(true)}
                   className="px-4 py-2 bg-gray-800 text-white rounded-md"
                 >
-                  Save & add another
+                  Saqlash va yana qo'shish
                 </button>
                 <button
                   type="button"
