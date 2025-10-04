@@ -80,10 +80,10 @@ export default function OverviewStats({ stats }) {
                 <p className="text-sm font-medium text-gray-600">{stat.name}</p>
                 <p className="text-3xl font-bold text-gray-900 mt-2">{stat.value}</p>
                 <div className="flex items-center mt-2">
-                  <span className="text-green-600 text-sm font-medium">
+                  {/* <span className="text-green-600 text-sm font-medium">
                     {stat.change ?? ''}
                   </span>
-                  <span className="text-gray-500 text-sm ml-1">vs last month</span>
+                  <span className="text-gray-500 text-sm ml-1">vs last month</span> */}
                 </div>
               </div>
               <div className={`${colors.bg} p-3 rounded-lg`}>

@@ -1,252 +1,185 @@
-'use client';
-
-import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import AdminSidebar from '../../../components/AdminSidebar';
+import React, { useEffect, useRef, useState } from "react";
+import AdminSidebar from "../../../components/AdminSidebar";
 import {
-  getPayments,
-  getStudents,
-  getGroups,
-  getDashboard,
-} from '../API/AdminPanelApi';
-
-// localStorage keys
-const READ_KEY = 'admin_notifications_read_v1';
-const LOCAL_KEY = 'admin_notifications_local_v1';
-
-function getTokenFromStorage() {
-  try {
-    return (
-      localStorage.getItem('token') ??
-      localStorage.getItem('authToken') ??
-      localStorage.getItem('apiToken') ??
-      localStorage.getItem('admin_token') ??
-      localStorage.getItem('accessToken') ??
-      ''
-    );
-  } catch {
-    return '';
-  }
-}
-
-function formatTime(t) {
-  if (!t) return '';
-  try {
-    const d = new Date(t);
-    if (isNaN(d.getTime())) return String(t);
-    return d.toLocaleString();
-  } catch (e) {
-    return String(t);
-  }
-}
+  getNotifications,
+  getUnreadNotifications,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  getNotificationStats,
+} from "../../notifications";
 
 export default function AdminNotificationsPage() {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-
-  const [payments, setPayments] = useState([]);
-  const [students, setStudents] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [dashboardRaw, setDashboardRaw] = useState(null);
-
-  // notifications state
   const [notifications, setNotifications] = useState([]);
-  const [filter, setFilter] = useState('all'); // 'all' | 'unread'
-  const [query, setQuery] = useState('');
-  const [readIds, setReadIds] = useState(new Set());
-  const [localAdds, setLocalAdds] = useState([]); // admin-created notifications
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [filter, setFilter] = useState("all"); // 'all' | 'unread'
+  const [lastFetchAt, setLastFetchAt] = useState(null);
+  const mountedRef = useRef(true);
+  const timerRef = useRef(null);
 
-  const listRef = useRef(null);
+  const pollMs = 5000; // Poll every 5 seconds
 
-  // load persisted read ids + local custom notifications
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(READ_KEY);
-      const arr = raw ? JSON.parse(raw) : [];
-      setReadIds(new Set(arr || []));
-    } catch (e) { /* ignore */ }
-
-    try {
-      const rawLocal = localStorage.getItem(LOCAL_KEY);
-      const arr = rawLocal ? JSON.parse(rawLocal) : [];
-      setLocalAdds(arr || []);
-    } catch (e) { /* ignore */ }
-  }, []);
-
-  // fetch backend data if token exists
-  useEffect(() => {
-    let mounted = true;
-    const token = getTokenFromStorage();
-    if (!token) {
-      // just build notifications from local data / sample
-      setLoading(false);
-      buildAndSet([] , [], []);
-      return () => { mounted = false; };
-    }
-
-    (async () => {
-      try {
-        setLoading(true);
-        const [pRes, sRes, gRes, dRes] = await Promise.allSettled([
-          getPayments(token),
-          getStudents(token),
-          getGroups(token),
-          getDashboard(token),
-        ]);
-
-        const extract = (s) => (s && s.status === 'fulfilled') ? s.value : null;
-        const pays = extract(pRes) ?? [];
-        const studs = extract(sRes) ?? [];
-        const gps = extract(gRes) ?? [];
-        const db = extract(dRes) ?? null;
-
-        if (!mounted) return;
-
-        setPayments(Array.isArray(pays) ? pays : (pays.results ?? pays.data ?? []));
-        setStudents(Array.isArray(studs) ? studs : (studs.results ?? studs.data ?? []));
-        setGroups(Array.isArray(gps) ? gps : (gps.results ?? gps.data ?? []));
-        setDashboardRaw(db);
-
-        buildAndSet(pays, studs, gps);
-      } catch (err) {
-        console.error('Notifications fetch error', err);
-        buildAndSet([], [], []);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-
-    return () => { mounted = false; };
+    mountedRef.current = true;
+    startPolling();
+    return () => {
+      mountedRef.current = false;
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [filter]);
 
-  function buildAndSet(pays = [], studs = [], gps = []) {
-    const acts = [];
+  async function fetchNotifications() {
+    try {
+      setLoading(true);
 
-    // payments
-    const paysArr = Array.isArray(pays) ? pays : (pays && (pays.results ?? pays.data ?? [])) || [];
-    paysArr.slice(0, 200).forEach((p) => {
-      const payer = p.payer_name ?? p.name ?? (p.student && (p.student.full_name ?? p.student.name)) ?? 'Unknown';
-      const amount = p.amount ?? p.total ?? p.price ?? '';
-      const status = (p.status ?? p.payment_status ?? '').toString().toLowerCase();
-      const title = status === 'paid' || status === 'successful'
-        ? `Payment received from ${payer}`
-        : status === 'overdue'
-          ? `Payment overdue for ${payer}`
-          : `Payment updated: ${payer}`;
+      // Fetch notifications based on filter
+      const notificationsData =
+        filter === "unread"
+          ? await getUnreadNotifications()
+          : await getNotifications();
 
-      acts.push({
-        id: `pay-${p.id ?? p.pk ?? Math.random()}`,
-        type: 'payment',
-        title,
-        body: amount ? `Amount: ${amount}` : '',
-        time: p.created_at ?? p.paid_at ?? p.date ?? p.updated_at ?? '',
-      });
-    });
+      // Fetch stats
+      const statsData = await getNotificationStats();
 
-    // students
-    const studsArr = Array.isArray(studs) ? studs : (studs && (studs.results ?? studs.data ?? [])) || [];
-    studsArr.slice(0, 200).forEach((s) => {
-      const name = s.full_name ?? s.name ?? (`${s.first_name ?? ''} ${s.last_name ?? ''}`.trim() || 'Student');
-      acts.push({
-        id: `stu-${s.id ?? s.pk ?? Math.random()}`,
-        type: 'student',
-        title: `${name} enrolled`,
-        body: s.group && (s.group.name ?? s.group.title) ? `Group: ${s.group.name ?? s.group.title}` : '',
-        time: s.enrollment_date ?? s.created_at ?? s.joined_at ?? '',
-      });
-    });
+      if (!mountedRef.current) return;
 
-    // groups (optional)
-    const groupsArr = Array.isArray(gps) ? gps : (gps && (gps.results ?? gps.data ?? [])) || [];
-    groupsArr.slice(0, 50).forEach((g) => {
-      const gname = g.name ?? g.title ?? g.uz ?? String(g.id ?? g.pk ?? g.group_id ?? g);
-      acts.push({
-        id: `grp-${g.id ?? g.pk ?? Math.random()}`,
-        type: 'group',
-        title: `Class: ${gname}`,
-        body: g.description ?? '',
-        time: g.created_at ?? g.createdAt ?? '',
-      });
-    });
+      setNotifications(notificationsData);
+      setStats(statsData);
+      setLastFetchAt(new Date().toLocaleString());
+    } catch (error) {
+      console.error("fetchNotifications error", error);
+      if (!mountedRef.current) return;
 
-    // local adds (admin made notifications)
-    const local = (() => {
-      try {
-        const raw = localStorage.getItem(LOCAL_KEY);
-        return raw ? JSON.parse(raw) : [];
-      } catch (e) { return []; }
-    })();
-
-    // combine, newest first (sort by time if exists else local first)
-    const combined = [...local.map(l => ({ ...l, _local: true })), ...acts];
-
-    // attempt to sort by date where possible
-    const withDates = combined.map((a) => {
-      const t = a.time ? new Date(a.time) : new Date(0);
-      const ts = isNaN(t.getTime()) ? 0 : t.getTime();
-      return { ...a, _ts: ts };
-    });
-
-    withDates.sort((a, b) => b._ts - a._ts);
-
-    setNotifications(withDates.map(({ _ts, _local, ...rest }) => rest));
+      // Show error in UI but don't crash
+      if (error.response?.status === 401) {
+        alert("Autentifikatsiya xatosi. Iltimos, qayta kiring.");
+      }
+    } finally {
+      if (mountedRef.current) setLoading(false);
+    }
   }
 
-  // persist readIds
-  useEffect(() => {
-    try {
-      localStorage.setItem(READ_KEY, JSON.stringify(Array.from(readIds)));
-    } catch (e) { /* ignore */ }
-  }, [readIds]);
+  function startPolling() {
+    fetchNotifications();
+    if (timerRef.current) clearTimeout(timerRef.current);
 
-  // persist local adds
-  useEffect(() => {
-    try {
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(localAdds));
-    } catch (e) { /* ignore */ }
-  }, [localAdds]);
-
-  const toggleRead = (id) => {
-    setReadIds(prev => {
-      const s = new Set(prev);
-      if (s.has(id)) s.delete(id);
-      else s.add(id);
-      return new Set(s);
-    });
-  };
-
-  const markAllRead = () => {
-    setReadIds(new Set(notifications.map(n => n.id)));
-  };
-
-  const addLocalNotification = (title, body) => {
-    const n = {
-      id: `local-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
-      title: title || 'Note',
-      body: body || '',
-      time: new Date().toISOString(),
+    const loop = async () => {
+      if (!mountedRef.current) return;
+      await fetchNotifications();
+      if (!mountedRef.current) return;
+      timerRef.current = setTimeout(loop, pollMs);
     };
-    setLocalAdds(prev => [n, ...prev]);
-    setNotifications(prev => [n, ...prev]);
+
+    timerRef.current = setTimeout(loop, pollMs);
+  }
+
+  async function handleMarkAsRead(notification) {
+    if (notification.is_read) return;
+
+    try {
+      // Optimistically update UI
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notification.id
+            ? { ...n, is_read: true, read_at: new Date().toISOString() }
+            : n
+        )
+      );
+
+      // Update on backend
+      await markNotificationAsRead(notification.id);
+
+      // Refresh stats
+      const statsData = await getNotificationStats();
+      setStats(statsData);
+    } catch (error) {
+      console.error("Mark as read error", error);
+      // Revert optimistic update on error
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notification.id ? { ...n, is_read: false, read_at: null } : n
+        )
+      );
+    }
+  }
+
+  async function handleMarkAllAsRead() {
+    if (!confirm("Barcha bildirishnomalar o'qilgan deb belgilansinmi?")) return;
+
+    try {
+      const unreadIds = notifications
+        .filter((n) => !n.is_read)
+        .map((n) => n.id);
+
+      if (unreadIds.length === 0) {
+        alert("O'qilmagan bildirishnomalar yo'q.");
+        return;
+      }
+
+      // Optimistically update UI
+      setNotifications((prev) =>
+        prev.map((n) => ({
+          ...n,
+          is_read: true,
+          read_at: new Date().toISOString(),
+        }))
+      );
+
+      // Update on backend
+      await markAllNotificationsAsRead(unreadIds);
+
+      // Refresh stats
+      const statsData = await getNotificationStats();
+      setStats(statsData);
+
+      alert(`${unreadIds.length} ta bildirishnoma o'qilgan deb belgilandi.`);
+    } catch (error) {
+      console.error("Mark all as read error", error);
+      // Refresh to get actual state
+      fetchNotifications();
+    }
+  }
+
+  const getNotificationIcon = (type) => {
+    const icons = {
+      assignment: "📝",
+      submission: "✅",
+      progress: "📊",
+      schedule: "📅",
+      payment: "💰",
+      announcement: "📢",
+      system: "⚙️",
+    };
+    return icons[type] || "📬";
   };
 
-  const removeNotification = (id) => {
-    // removing local vs remote: if local then remove from localAdds; otherwise just hide from UI by filtering
-    setLocalAdds(prev => prev.filter(l => l.id !== id));
-    setNotifications(prev => prev.filter(n => n.id !== id));
-    setReadIds(prev => {
-      const s = new Set(prev);
-      s.delete(id);
-      return s;
-    });
+  const getPriorityStyle = (priority) => {
+    if (priority === "high") return "border-l-4 border-red-500 bg-red-50";
+    if (priority === "medium")
+      return "border-l-4 border-yellow-500 bg-yellow-50";
+    return "border-l-4 border-green-500 bg-green-50";
   };
 
-  const visible = notifications.filter(n => {
-    if (filter === 'unread' && readIds.has(n.id)) return false;
-    if (query && !(String(n.title ?? '').toLowerCase().includes(query.toLowerCase()) || String(n.body ?? '').toLowerCase().includes(query.toLowerCase()))) return false;
-    return true;
-  });
+  const formatTime = (timestamp) => {
+    if (!timestamp) return "—";
+    try {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 1) return "Hozir";
+      if (diffMins < 60) return `${diffMins} daqiqa oldin`;
+      if (diffHours < 24) return `${diffHours} soat oldin`;
+      if (diffDays < 7) return `${diffDays} kun oldin`;
+      return date.toLocaleDateString("uz-UZ");
+    } catch {
+      return String(timestamp);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -255,81 +188,223 @@ export default function AdminNotificationsPage() {
 
         <main className="flex-1 ml-0 lg:ml-64 p-6">
           <div className="max-w-7xl mx-auto h-full">
-            {/* Full-screen-like panel */}
             <div className="bg-white rounded-xl shadow p-6 h-[calc(100vh-96px)] overflow-hidden flex flex-col">
+              {/* Header */}
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <button onClick={() => navigate('/admin')} className="mr-3 inline-flex items-center px-3 py-2 rounded bg-gray-100 hover:bg-gray-200">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                    Back
-                  </button>
-                  <h2 className="text-2xl font-semibold">Notifications</h2>
-                  <p className="text-sm text-gray-500">All notifications for your center — payments, enrollments, and admin notes.</p>
+                  <h2 className="text-2xl font-semibold">Bildirishnomalar</h2>
+                  <p className="text-sm text-gray-500">
+                    Tizim bildirshnomalari va muhim xabarlar
+                  </p>
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center border rounded-lg overflow-hidden">
-                    <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search notifications" className="px-3 py-2 w-64 focus:outline-none" />
-                    <button onClick={() => setQuery('')} className="px-3 py-2 text-sm border-l">Clear</button>
+                  <div className="text-sm text-gray-600">
+                    Oxirgi yangilanish: {lastFetchAt ?? "—"}
                   </div>
-
-                  <div className="flex gap-2">
-                    <button onClick={() => setFilter('all')} className={`px-3 py-2 rounded ${filter==='all' ? 'bg-indigo-600 text-white' : 'bg-gray-100'}`}>All</button>
-                    <button onClick={() => setFilter('unread')} className={`px-3 py-2 rounded ${filter==='unread' ? 'bg-indigo-600 text-white' : 'bg-gray-100'}`}>Unread</button>
-                  </div>
-
-                  <button onClick={markAllRead} className="px-3 py-2 rounded bg-green-50 text-green-700">Mark all read</button>
+                  <button
+                    onClick={() => fetchNotifications()}
+                    disabled={loading}
+                    className="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
+                  >
+                    {loading ? "Yuklanmoqda..." : "Yangilash"}
+                  </button>
+                  <button
+                    onClick={handleMarkAllAsRead}
+                    className="px-3 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
+                  >
+                    Hammasini o'qilgan deb belgilash
+                  </button>
                 </div>
               </div>
 
-              <div className="flex gap-6 h-full">
-                {/* left: list */}
-                <div className="w-2/3 h-full overflow-y-auto border-r pr-4" ref={listRef}>
-                  {loading && <div className="p-4">Loading...</div>}
+              {/* Filter tabs */}
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setFilter("all")}
+                  className={`px-4 py-2 rounded ${
+                    filter === "all"
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-100 hover:bg-gray-200"
+                  }`}
+                >
+                  Barchasi {stats && `(${stats.total})`}
+                </button>
+                <button
+                  onClick={() => setFilter("unread")}
+                  className={`px-4 py-2 rounded ${
+                    filter === "unread"
+                      ? "bg-indigo-600 text-white"
+                      : "bg-gray-100 hover:bg-gray-200"
+                  }`}
+                >
+                  O'qilmaganlar {stats && `(${stats.unread})`}
+                </button>
+              </div>
 
-                  {!loading && visible.length === 0 && (
-                    <div className="p-6 text-center text-gray-500">No notifications match your filter.</div>
+              <div className="flex gap-6 h-full">
+                {/* Main notification list */}
+                <div className="w-2/3 h-full overflow-y-auto border-r pr-4">
+                  {loading && notifications.length === 0 && (
+                    <div className="p-4 text-center">Yuklanmoqda...</div>
                   )}
 
-                  {visible.map((n) => (
-                    <div key={n.id} className={`p-4 mb-3 rounded-lg ${readIds.has(n.id) ? 'bg-white' : 'bg-indigo-50'} border`}>
+                  {!loading && notifications.length === 0 && (
+                    <div className="p-6 text-center text-gray-500">
+                      {filter === "unread"
+                        ? "O'qilmagan bildirishnomalar yo'q."
+                        : "Hozircha bildirishnomalar yo'q."}
+                    </div>
+                  )}
+
+                  {notifications.map((notification) => (
+                    <div
+                      key={notification.id}
+                      className={`p-4 mb-3 rounded-lg ${
+                        notification.is_read
+                          ? "bg-white border border-gray-200"
+                          : getPriorityStyle(notification.priority)
+                      } cursor-pointer hover:shadow-md transition-shadow`}
+                      onClick={() => handleMarkAsRead(notification)}
+                    >
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <div className="text-sm font-semibold">{n.title}</div>
-                            <div className="text-xs text-gray-500">{formatTime(n.time)}</div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xl">
+                              {getNotificationIcon(
+                                notification.notification_type
+                              )}
+                            </span>
+                            <div className="font-semibold text-gray-900">
+                              {notification.title}
+                            </div>
+                            {!notification.is_read && (
+                              <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                                Yangi
+                              </span>
+                            )}
                           </div>
-                          {n.body && <div className="mt-2 text-sm text-gray-700">{n.body}</div>}
+
+                          <div className="text-sm text-gray-700 mb-2">
+                            {notification.message}
+                          </div>
+
+                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                            <span>{formatTime(notification.created_at)}</span>
+                            <span className="capitalize">
+                              {notification.notification_type}
+                            </span>
+                            {notification.recipient_username && (
+                              <span>👤 {notification.recipient_username}</span>
+                            )}
+                          </div>
+
+                          {notification.related_object_info && (
+                            <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                              {notification.related_object_info}
+                            </div>
+                          )}
                         </div>
 
                         <div className="flex flex-col items-end gap-2">
-                          <button onClick={() => toggleRead(n.id)} className="px-3 py-1 rounded text-sm bg-gray-100 hover:bg-gray-200">{readIds.has(n.id) ? 'Mark unread' : 'Mark read'}</button>
-                          <button onClick={() => removeNotification(n.id)} className="px-3 py-1 rounded text-sm bg-red-50 text-red-700 hover:bg-red-100">Remove</button>
+                          {notification.is_read ? (
+                            <span className="text-green-600 text-sm">
+                              ✓ O'qilgan
+                            </span>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsRead(notification);
+                              }}
+                              className="px-3 py-1 rounded text-sm bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                            >
+                              O'qilgan
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {/* right: details / create */}
+                {/* Sidebar with stats */}
                 <div className="w-1/3 h-full flex flex-col gap-4">
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-medium mb-2">Create quick note</h3>
-                    <QuickAddForm onAdd={addLocalNotification} />
-                  </div>
-
-                  <div className="p-4 border rounded-lg overflow-y-auto">
-                    <h3 className="font-medium mb-2">Summary</h3>
-                    <div className="text-sm text-gray-700">Total: {notifications.length}</div>
-                    <div className="text-sm text-gray-700">Unread: {notifications.filter(n => !readIds.has(n.id)).length}</div>
-                    <div className="mt-3">
-                      <button onClick={() => { localStorage.removeItem(LOCAL_KEY); setLocalAdds([]); }} className="px-3 py-2 bg-yellow-50 text-yellow-800 rounded">Clear local notes</button>
+                  {stats && (
+                    <div className="p-4 border rounded-lg bg-gradient-to-br from-indigo-50 to-blue-50">
+                      <h3 className="font-semibold mb-3">Statistika</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Jami:</span>
+                          <span className="font-semibold">{stats.total}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">O'qilmagan:</span>
+                          <span className="font-semibold text-blue-600">
+                            {stats.unread}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">O'qilgan:</span>
+                          <span className="font-semibold text-green-600">
+                            {stats.read}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="p-4 border rounded-lg">
-                    <h3 className="font-medium mb-2">Help</h3>
-                    <div className="text-sm text-gray-600">This page is UI-first. Tomorrow you can wire each item to backend endpoints to mark read/unread or delete. Local notes are stored in your browser until you add backend support.</div>
+                  {stats?.by_type && Object.keys(stats.by_type).length > 0 && (
+                    <div className="p-4 border rounded-lg">
+                      <h3 className="font-semibold mb-3">Tur bo'yicha</h3>
+                      <div className="space-y-2 text-sm">
+                        {Object.entries(stats.by_type).map(([type, count]) => (
+                          <div key={type} className="flex justify-between">
+                            <span className="text-gray-600 capitalize flex items-center gap-1">
+                              {getNotificationIcon(type)} {type}
+                            </span>
+                            <span className="font-semibold">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {stats?.by_priority &&
+                    Object.keys(stats.by_priority).length > 0 && (
+                      <div className="p-4 border rounded-lg">
+                        <h3 className="font-semibold mb-3">
+                          Muhimlik darajasi
+                        </h3>
+                        <div className="space-y-2 text-sm">
+                          {Object.entries(stats.by_priority).map(
+                            ([priority, count]) => (
+                              <div
+                                key={priority}
+                                className="flex justify-between"
+                              >
+                                <span className="text-gray-600 capitalize">
+                                  {priority === "high" && "🔴"}{" "}
+                                  {priority === "medium" && "🟡"}{" "}
+                                  {priority === "low" && "🟢"} {priority}
+                                </span>
+                                <span className="font-semibold">{count}</span>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                  <div className="p-4 border rounded-lg bg-blue-50">
+                    <h3 className="font-semibold mb-2 text-blue-900">
+                      💡 Maslahat
+                    </h3>
+                    <div className="text-sm text-blue-800">
+                      Bildirishnomani o'qish uchun ustiga bosing. Tizim
+                      avtomatik ravishda yangi bildirishnomalarni{" "}
+                      {pollMs / 1000} soniya ichida tekshiradi.
+                    </div>
                   </div>
                 </div>
               </div>
@@ -338,28 +413,5 @@ export default function AdminNotificationsPage() {
         </main>
       </div>
     </div>
-  );
-}
-
-function QuickAddForm({ onAdd }) {
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
-
-  const submit = (e) => {
-    e.preventDefault();
-    if (!title.trim()) return alert('Title required');
-    onAdd(title, body);
-    setTitle('');
-    setBody('');
-  };
-
-  return (
-    <form onSubmit={submit} className="flex flex-col gap-2">
-      <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Short title" className="w-full border rounded p-2" />
-      <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="More details (optional)" className="w-full border rounded p-2 h-24" />
-      <div className="flex justify-end">
-        <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">Add</button>
-      </div>
-    </form>
   );
 }

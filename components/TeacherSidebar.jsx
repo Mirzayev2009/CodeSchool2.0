@@ -59,7 +59,7 @@ export default function TeacherSidebar({ isOpen, onClose }) {
                 isDarkMode ? 'text-white' : 'text-gray-900'
               }`}
             >
-              EduCenter
+              CodeSchool Teacher
             </span>
           </div>
           {/* Close button (mobile only) */}

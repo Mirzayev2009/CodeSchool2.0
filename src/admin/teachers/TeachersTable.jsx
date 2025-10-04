@@ -1,7 +1,13 @@
+// TeachersTable.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-// API helpers (update names if your API module exports different functions)
+
+// Use your existing API helpers (do not create URLs here).
+// Make sure AdminPanelApi exports these functions.
 import {
+  getTeachers as apiGetTeachers,
+  getTeacher as apiGetTeacher,
+  updateTeacher as apiUpdateTeacher,
   patchTeacher as apiPatchTeacher,
   deleteTeacher as apiDeleteTeacher,
 } from "../API/AdminPanelApi";
@@ -9,13 +15,15 @@ import {
 /**
  * TeachersTable
  *
- * Props (all optional — component works with internal mock data if not provided):
- * - teachers: array of teacher objects
- * - loading: boolean
- * - onDelete: (id) => Promise|void  // if provided, used to delete
- * - onToggleStatus: (teacher) => Promise|void // if provided, handles toggling status
- * - onSave: (id, payload) => Promise|void // if provided, handles saving edits
- * - refresh: () => void // called after successful backend changes
+ * Props (all optional):
+ * - teachers: array of teacher objects (if parent already provides)
+ * - loading: boolean (parent-provided loading)
+ * - onDelete: (id) => Promise|void  // optional parent delete handler
+ * - onToggleStatus: (teacher) => Promise|void // optional parent handler
+ * - onSave: (id, payload) => Promise|void // optional parent save handler
+ * - refresh: () => void // optional parent refresh callback
+ *
+ * NOTE: This component no longer uses a hardcoded array; it fetches from API.
  */
 export default function TeachersTable({
   teachers: propsTeachers = null,
@@ -25,81 +33,9 @@ export default function TeachersTable({
   onSave = null,
   refresh = () => {},
 }) {
-  // fallback/mock data (so UI works while backend is not ready)
-  const fallbackTeachers = [
-    {
-      id: 1,
-      name: "Dr. Robert Smith",
-      email: "robert.smith@codeschool.com",
-      phone: "+1 (555) 111-2222",
-      specialization: "JavaScript & React",
-      experience: "8 years",
-      status: "Active",
-      classes: 3,
-      students: 45,
-      hireDate: "2020-03-15",
-      __raw: {},
-    },
-    {
-      id: 2,
-      name: "Sarah Williams",
-      email: "sarah.williams@codeschool.com",
-      phone: "+1 (555) 333-4444",
-      specialization: "Python & Django",
-      experience: "6 years",
-      status: "Active",
-      classes: 2,
-      students: 32,
-      hireDate: "2021-08-10",
-      __raw: {},
-    },
-    {
-      id: 3,
-      name: "Michael Johnson",
-      email: "michael.johnson@codeschool.com",
-      phone: "+1 (555) 555-6666",
-      specialization: "Web Development",
-      experience: "10 years",
-      status: "Active",
-      classes: 4,
-      students: 58,
-      hireDate: "2019-01-20",
-      __raw: {},
-    },
-    {
-      id: 4,
-      name: "Emma Davis",
-      email: "emma.davis@codeschool.com",
-      phone: "+1 (555) 777-8888",
-      specialization: "Data Science",
-      experience: "5 years",
-      status: "On Leave",
-      classes: 1,
-      students: 18,
-      hireDate: "2022-06-05",
-      __raw: {},
-    },
-    {
-      id: 5,
-      name: "Alex Chen",
-      email: "alex.chen@codeschool.com",
-      phone: "+1 (555) 999-0000",
-      specialization: "Mobile Development",
-      experience: "7 years",
-      status: "Active",
-      classes: 2,
-      students: 29,
-      hireDate: "2020-11-12",
-      __raw: {},
-    },
-  ];
-
-  // If parent passes teachers use them, otherwise use fallback
-  const teachers = useMemo(
-    () => (Array.isArray(propsTeachers) ? propsTeachers : fallbackTeachers),
-    [propsTeachers]
-  );
-
+  // Internal state to hold backend data
+  const [teachersState, setTeachersState] = useState(null);
+  const [loadingState, setLoadingState] = useState(false);
   const [panel, setPanel] = useState({ type: null, teacher: null }); // type: 'view' | 'edit' | 'delete'
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -115,6 +51,69 @@ export default function TeachersTable({
     students: "",
     hireDate: "",
   });
+
+  const POLL_INTERVAL = 5000; // ms. Set to 0 to disable polling.
+
+  const getToken = () => localStorage.getItem("token");
+
+  // derive the teachers array used by the UI:
+  const teachers = useMemo(() => {
+    if (Array.isArray(propsTeachers)) return propsTeachers;
+    if (Array.isArray(teachersState)) return teachersState;
+    return [];
+  }, [propsTeachers, teachersState]);
+
+  // fetch teachers from backend (handles paginated results)
+  useEffect(() => {
+    // If parent supplies teachers, skip fetching
+    if (Array.isArray(propsTeachers)) return;
+
+    let mounted = true;
+    let intervalId = null;
+
+    const normalizeList = (res) => {
+      if (!res) return [];
+      if (Array.isArray(res)) return res;
+      if (Array.isArray(res.results)) return res.results;
+      if (Array.isArray(res.data)) return res.data;
+      if (Array.isArray(res.teachers)) return res.teachers;
+      // fallback: if object but not array, try to find first array prop
+      for (const k of Object.keys(res)) {
+        if (Array.isArray(res[k])) return res[k];
+      }
+      // worst case
+      return [];
+    };
+
+    const fetchTeachers = async () => {
+      setLoadingState(true);
+      try {
+        const token = getToken();
+        const res = await apiGetTeachers(token);
+        const list = normalizeList(res);
+        if (mounted) setTeachersState(list);
+      } catch (err) {
+        console.error("fetchTeachers error", err);
+        // keep previous state; do not crash UI
+      } finally {
+        if (mounted) setLoadingState(false);
+      }
+    };
+
+    // initial fetch
+    fetchTeachers();
+
+    // polling for near-real-time updates
+    if (POLL_INTERVAL && POLL_INTERVAL > 0) {
+      intervalId = setInterval(fetchTeachers, POLL_INTERVAL);
+    }
+
+    return () => {
+      mounted = false;
+      if (intervalId) clearInterval(intervalId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [propsTeachers]); // only re-run if parent supplies teachers (we respect parent's data)
 
   // fill edit form when edit panel opens
   useEffect(() => {
@@ -147,7 +146,30 @@ export default function TeachersTable({
     return () => window.removeEventListener("keydown", onKey);
   }, [panel.type]);
 
-  const getToken = () => localStorage.getItem("token");
+  // small helpers for badges/labels
+  const getStatusBadge = (status) => {
+    if (status === "Active") return "bg-green-100 text-green-800";
+    if ((String(status) || "").toLowerCase() === "on leave")
+      return "bg-yellow-100 text-yellow-800";
+    return "bg-red-100 text-red-800";
+  };
+
+  const localStatusLabel = (status) => {
+    switch (String(status).toLowerCase()) {
+      case "active":
+        return "Faol";
+      case "on leave":
+        return "Ta'tilda";
+      default:
+        return status;
+    }
+  };
+
+  // open panels
+  const openView = (t) => setPanel({ type: "view", teacher: t });
+  const openEdit = (t) => setPanel({ type: "edit", teacher: t });
+  const openDelete = (t) => setPanel({ type: "delete", teacher: t });
+  const closePanel = () => setPanel({ type: null, teacher: null });
 
   // Toggle status (prefers parent handler)
   const toggleStatus = async (teacher) => {
@@ -162,7 +184,6 @@ export default function TeachersTable({
       }
     }
 
-    // fallback: try calling API patch
     const currentActive =
       teacher.__raw?.active ??
       (teacher.status === "Active"
@@ -179,6 +200,22 @@ export default function TeachersTable({
         { active: newActive, is_active: newActive },
         token
       );
+
+      // optimistic/local update
+      setTeachersState((prev) =>
+        Array.isArray(prev)
+          ? prev.map((t) =>
+              t.id === teacher.id
+                ? {
+                    ...t,
+                    status: newActive ? "Active" : "Inactive",
+                    __raw: { ...(t.__raw || {}), active: newActive },
+                  }
+                : t
+            )
+          : prev
+      );
+
       if (typeof refresh === "function") refresh();
     } catch (err) {
       console.error("patchTeacher error", err);
@@ -223,7 +260,6 @@ export default function TeachersTable({
       payload.is_active = isActive;
     }
 
-    // Prefer parent onSave if available
     try {
       if (typeof onSave === "function" && onSave !== null) {
         await onSave(panel.teacher.id, payload);
@@ -231,6 +267,16 @@ export default function TeachersTable({
         const token = getToken();
         await apiPatchTeacher(panel.teacher.id, payload, token);
       }
+
+      // optimistic/local update
+      setTeachersState((prev) =>
+        Array.isArray(prev)
+          ? prev.map((t) =>
+              t.id === panel.teacher.id ? { ...t, ...payload } : t
+            )
+          : prev
+      );
+
       alert("O'zgartirishlar saqlandi.");
       setPanel({ type: null, teacher: null });
       if (typeof refresh === "function") refresh();
@@ -254,6 +300,14 @@ export default function TeachersTable({
         const token = getToken();
         await apiDeleteTeacher(panel.teacher.id, token);
       }
+
+      // local update
+      setTeachersState((prev) =>
+        Array.isArray(prev)
+          ? prev.filter((t) => t.id !== panel.teacher.id)
+          : prev
+      );
+
       alert("O'qituvchi o'chirildi.");
       setPanel({ type: null, teacher: null });
       if (typeof refresh === "function") refresh();
@@ -265,36 +319,13 @@ export default function TeachersTable({
     }
   };
 
-  // small helpers for badges/labels
-  const getStatusBadge = (status) => {
-    if (status === "Active") return "bg-green-100 text-green-800";
-    if ((String(status) || "").toLowerCase() === "on leave")
-      return "bg-yellow-100 text-yellow-800";
-    return "bg-red-100 text-red-800";
-  };
-
-  const localStatusLabel = (status) => {
-    switch (String(status).toLowerCase()) {
-      case "active":
-        return "Faol";
-      case "on leave":
-        return "Ta'tilda";
-      default:
-        return status;
-    }
-  };
-
-  // open panels
-  const openView = (t) => setPanel({ type: "view", teacher: t });
-  const openEdit = (t) => setPanel({ type: "edit", teacher: t });
-  const openDelete = (t) => setPanel({ type: "delete", teacher: t });
-  const closePanel = () => setPanel({ type: null, teacher: null });
+  const isLoading = loading || loadingState;
 
   return (
     <div className="overflow-x-auto">
       <div className="p-4">
         <div className="text-sm text-gray-500">
-          {loading ? "Yuklanmoqda..." : `${teachers.length} ta o'qituvchi`}
+          {isLoading ? "Yuklanmoqda..." : `${teachers.length} ta o'qituvchi`}
         </div>
       </div>
 

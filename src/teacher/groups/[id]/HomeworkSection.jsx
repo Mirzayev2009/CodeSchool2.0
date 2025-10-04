@@ -4,32 +4,27 @@ import { useState, useEffect } from "react";
 import { useUser } from "../../../UserContext";
 import { getLessons, getLessonHomework } from "../../../lessonApi";
 import {
-  getHomeworkTasks,
   createHomework,
   updateHomework,
   deleteHomework,
 } from "../../../homeworkApi";
-import { getTasks } from "../../../taskApi";
 
 export default function LessonHomeworkSection() {
   const { token } = useUser();
   const [lessons, setLessons] = useState([]);
   const [lessonHomeworks, setLessonHomeworks] = useState({});
-  const [homeworkTasks, setHomeworkTasks] = useState({});
   const [savedLessons, setSavedLessons] = useState([]);
   const [activeLesson, setActiveLesson] = useState(null);
   const [selectedHomeworks, setSelectedHomeworks] = useState({});
-  const [selectedTasks, setSelectedTasks] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadingHomeworks, setLoadingHomeworks] = useState(false);
-  const [loadingTasks, setLoadingTasks] = useState(false);
   const [error, setError] = useState(null);
 
   // CRUD states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingHomework, setEditingHomework] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false); // Add loading state for forms
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [homeworkForm, setHomeworkForm] = useState({
     title: "",
     description: "",
@@ -46,7 +41,7 @@ export default function LessonHomeworkSection() {
       setLoading(true);
       setError(null);
       const lessonsData = await getLessons(token);
-      setLessons(lessonsData);
+      setLessons(lessonsData || []);
     } catch (error) {
       console.error("Error loading lessons:", error);
       setError("Failed to load lessons");
@@ -55,160 +50,53 @@ export default function LessonHomeworkSection() {
     }
   };
 
+  // Load homeworks for a lesson; only fetch if we haven't loaded that lesson's homeworks yet.
   const loadHomeworks = async (lessonId) => {
-    if (lessonHomeworks[lessonId]) return;
+    // treat 'undefined' as not-yet-loaded; if it exists (even as empty array) skip
+    if (typeof lessonHomeworks[lessonId] !== "undefined") return;
 
     setLoadingHomeworks(true);
     try {
       const homeworkData = await getLessonHomework(lessonId, token);
-      const homeworks = homeworkData.homework || homeworkData || [];
+      // API might return an object with `.homework` or an array directly
+      const homeworks = homeworkData?.homework ?? homeworkData ?? [];
       setLessonHomeworks((prev) => ({
         ...prev,
-        [lessonId]: homeworks,
+        [lessonId]: Array.isArray(homeworks) ? homeworks : [],
       }));
     } catch (error) {
       console.error("Error loading homeworks:", error);
       setError("Failed to load homeworks");
+      setLessonHomeworks((prev) => ({ ...prev, [lessonId]: [] }));
     } finally {
       setLoadingHomeworks(false);
     }
   };
 
-  const loadTasks = async (homeworkId) => {
-    if (homeworkTasks[homeworkId]) return;
-
-    setLoadingTasks(true);
-    try {
-      let tasks = [];
-
-      // First try to get all tasks and filter by homework ID
-      try {
-        console.log("Fetching tasks for homework ID:", homeworkId);
-        const allTasks = await getTasks(token);
-        console.log("All tasks received:", allTasks);
-
-        // Debug: Log the structure of the first few tasks to understand the data
-        if (allTasks.length > 0) {
-          console.log("Sample task structure:", allTasks[0]);
-          console.log("Task properties:", Object.keys(allTasks[0]));
-        }
-
-        // Try multiple filtering approaches based on the actual data structure
-        const targetHomeworkId = parseInt(homeworkId);
-
-        // Method 1: Filter by homework property
-        let filteredTasks = allTasks.filter((task) => {
-          const taskHomeworkId = parseInt(task.homework);
-          return taskHomeworkId === targetHomeworkId;
-        });
-
-        // Method 2: If no results, try filtering by homework_id property
-        if (filteredTasks.length === 0) {
-          filteredTasks = allTasks.filter((task) => {
-            const taskHomeworkId = parseInt(task.homework_id);
-            return taskHomeworkId === targetHomeworkId;
-          });
-        }
-
-        // Method 3: If still no results, find the homework name and filter by homework_title
-        if (filteredTasks.length === 0) {
-          const activeHomeworks = lessonHomeworks[activeLesson] || [];
-          const currentHomework = activeHomeworks.find(
-            (hw) => hw.id === homeworkId
-          );
-          if (currentHomework) {
-            console.log(
-              "Trying to filter by homework title:",
-              currentHomework.title
-            );
-            filteredTasks = allTasks.filter((task) => {
-              return task.homework_title === currentHomework.title;
-            });
-          }
-        }
-
-        tasks = filteredTasks;
-        console.log(
-          "Final filtered tasks for homework",
-          homeworkId,
-          ":",
-          tasks
-        );
-      } catch (tasksError) {
-        console.log("Tasks API failed, trying homework API...", tasksError);
-
-        // Fallback: Try the homework-specific endpoint
-        try {
-          const homeworkTasksData = await getHomeworkTasks(homeworkId, token);
-          console.log("Homework tasks data:", homeworkTasksData);
-          tasks = homeworkTasksData.tasks || homeworkTasksData || [];
-        } catch (homeworkError) {
-          console.error("Both API methods failed:", homeworkError);
-          tasks = [];
-        }
-      }
-
-      console.log("Final tasks for homework", homeworkId, ":", tasks);
-      setHomeworkTasks((prev) => ({
-        ...prev,
-        [homeworkId]: tasks,
-      }));
-    } catch (error) {
-      console.error("Error in loadTasks:", error);
-      setHomeworkTasks((prev) => ({
-        ...prev,
-        [homeworkId]: [],
-      }));
-    } finally {
-      setLoadingTasks(false);
-    }
-  };
-
   const handleLessonClick = (lessonId) => {
-    setActiveLesson(lessonId);
-    setSelectedHomeworks((prev) => ({ ...prev, [lessonId]: [] }));
-    setSelectedTasks({});
+    const normalizedLessonId = Number(lessonId);
+    setActiveLesson(normalizedLessonId);
+    setSelectedHomeworks((prev) => ({ ...prev, [normalizedLessonId]: [] }));
     setError(null);
-    loadHomeworks(lessonId);
+    loadHomeworks(normalizedLessonId);
   };
 
   const handleHomeworkClick = (homeworkId) => {
+    if (activeLesson === null) return;
+    const hwId = Number(homeworkId);
     setSelectedHomeworks((prev) => {
       const currentSelected = prev[activeLesson] || [];
-      const isSelected = currentSelected.includes(homeworkId);
+      const isSelected = currentSelected.includes(hwId);
 
       if (isSelected) {
-        setSelectedTasks((prev) => {
-          const newTasks = { ...prev };
-          delete newTasks[homeworkId];
-          return newTasks;
-        });
         return {
           ...prev,
-          [activeLesson]: currentSelected.filter((id) => id !== homeworkId),
-        };
-      } else {
-        loadTasks(homeworkId);
-        return {
-          ...prev,
-          [activeLesson]: [...currentSelected, homeworkId],
-        };
-      }
-    });
-  };
-
-  const handleTaskClick = (homeworkId, taskId) => {
-    setSelectedTasks((prev) => {
-      const currentTasks = prev[homeworkId] || [];
-      if (currentTasks.includes(taskId)) {
-        return {
-          ...prev,
-          [homeworkId]: currentTasks.filter((id) => id !== taskId),
+          [activeLesson]: currentSelected.filter((id) => id !== hwId),
         };
       } else {
         return {
           ...prev,
-          [homeworkId]: [...currentTasks, taskId],
+          [activeLesson]: [...currentSelected, hwId],
         };
       }
     });
@@ -254,67 +142,38 @@ export default function LessonHomeworkSection() {
     e.preventDefault();
     if (!activeLesson) return;
 
-    // Validate form data
-    if (!homeworkForm.title.trim()) {
-      showNotification("Please enter a homework title", "error");
-      return;
-    }
+    const homeworkData = {
+      title: homeworkForm.title.trim(),
+      description: homeworkForm.description.trim(),
+      lesson: Number(activeLesson), // 🔑 make sure it’s an integer
+    };
 
-    if (!homeworkForm.description.trim()) {
-      showNotification("Please enter a homework description", "error");
-      return;
-    }
-
-    setIsSubmitting(true);
     try {
-      console.log("Creating homework with data:", {
-        ...homeworkForm,
-        lesson: activeLesson,
-      });
-
-      // Prepare the data object
-      const homeworkData = {
-        title: homeworkForm.title.trim(),
-        description: homeworkForm.description.trim(),
-        lesson: activeLesson,
-      };
-
-      // Only add due_date if it's provided
-      if (homeworkForm.due_date) {
-        homeworkData.due_date = homeworkForm.due_date;
-      }
+      console.log("📤 Creating homework →", homeworkData);
 
       const newHomework = await createHomework(homeworkData, token);
-      console.log("Created homework response:", newHomework);
 
-      // Update local state - handle different response structures
-      const homeworkToAdd = newHomework.data || newHomework;
+      console.log("✅ Homework created (server response):", newHomework);
+
+      if (!newHomework || !newHomework.id) {
+        throw new Error("Invalid response from server");
+      }
 
       setLessonHomeworks((prev) => ({
         ...prev,
-        [activeLesson]: [...(prev[activeLesson] || []), homeworkToAdd],
+        [activeLesson]: [...(prev[activeLesson] || []), newHomework],
       }));
 
-      // Reset form and close modal
-      setHomeworkForm({ title: "", description: "", due_date: "" });
       setShowCreateModal(false);
+      setHomeworkForm({ title: "", description: "" });
       showNotification("Homework created successfully!");
     } catch (error) {
-      console.error("Error creating homework:", error);
-
-      // More detailed error handling
-      let errorMessage = "Failed to create homework";
-      if (error.response) {
-        console.error("Error response:", error.response.data);
-        errorMessage =
-          error.response.data.message ||
-          error.response.data.error ||
-          errorMessage;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      showNotification(errorMessage, "error");
+      console.error(
+        "❌ Failed to create homework:",
+        error.status,
+        error.body || error.message
+      );
+      showNotification("Failed to create homework", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -324,7 +183,6 @@ export default function LessonHomeworkSection() {
     e.preventDefault();
     if (!editingHomework) return;
 
-    // Validate form data
     if (!homeworkForm.title.trim()) {
       showNotification("Please enter a homework title", "error");
       return;
@@ -337,61 +195,46 @@ export default function LessonHomeworkSection() {
 
     setIsSubmitting(true);
     try {
-      console.log(
-        "Updating homework with ID:",
-        editingHomework.id,
-        "Data:",
-        homeworkForm
-      );
-
-      // Prepare the data object
       const updateData = {
         title: homeworkForm.title.trim(),
         description: homeworkForm.description.trim(),
       };
-
-      // Only add due_date if it's provided
-      if (homeworkForm.due_date) {
-        updateData.due_date = homeworkForm.due_date;
-      }
+      if (homeworkForm.due_date) updateData.due_date = homeworkForm.due_date;
 
       const updatedHomework = await updateHomework(
         editingHomework.id,
         updateData,
         token
       );
-      console.log("Updated homework response:", updatedHomework);
+      const homeworkToUpdate = updatedHomework?.data ?? updatedHomework;
 
-      // Handle different response structures
-      const homeworkToUpdate = updatedHomework.data || updatedHomework;
+      setLessonHomeworks((prev) => {
+        const existing = prev[activeLesson] || [];
+        return {
+          ...prev,
+          [activeLesson]: existing.map((hw) =>
+            Number(hw.id) === Number(editingHomework.id)
+              ? { ...hw, ...homeworkToUpdate }
+              : hw
+          ),
+        };
+      });
 
-      setLessonHomeworks((prev) => ({
-        ...prev,
-        [activeLesson]: prev[activeLesson].map((hw) =>
-          hw.id === editingHomework.id ? { ...hw, ...homeworkToUpdate } : hw
-        ),
-      }));
-
-      // Reset form and close modal
       setHomeworkForm({ title: "", description: "", due_date: "" });
       setShowEditModal(false);
       setEditingHomework(null);
       showNotification("Homework updated successfully!");
     } catch (error) {
       console.error("Error updating homework:", error);
-
-      // More detailed error handling
       let errorMessage = "Failed to update homework";
-      if (error.response) {
-        console.error("Error response:", error.response.data);
+      if (error?.response?.data) {
         errorMessage =
           error.response.data.message ||
           error.response.data.error ||
           errorMessage;
-      } else if (error.message) {
+      } else if (error?.message) {
         errorMessage = error.message;
       }
-
       showNotification(errorMessage, "error");
     } finally {
       setIsSubmitting(false);
@@ -407,54 +250,41 @@ export default function LessonHomeworkSection() {
       return;
 
     try {
-      console.log("Deleting homework with ID:", homeworkId);
-
       await deleteHomework(homeworkId, token);
-      console.log("Homework deleted successfully");
 
-      // Remove from local state
-      setLessonHomeworks((prev) => ({
-        ...prev,
-        [activeLesson]: prev[activeLesson].filter((hw) => hw.id !== homeworkId),
-      }));
+      setLessonHomeworks((prev) => {
+        const arr = prev[activeLesson] || [];
+        return {
+          ...prev,
+          [activeLesson]: arr.filter(
+            (hw) => Number(hw.id) !== Number(homeworkId)
+          ),
+        };
+      });
 
-      // Also remove from selected homeworks if it was selected
       setSelectedHomeworks((prev) => ({
         ...prev,
         [activeLesson]: (prev[activeLesson] || []).filter(
-          (id) => id !== homeworkId
+          (id) => Number(id) !== Number(homeworkId)
         ),
       }));
 
-      // Remove associated tasks from state
-      setHomeworkTasks((prev) => {
-        const newTasks = { ...prev };
-        delete newTasks[homeworkId];
-        return newTasks;
-      });
-
-      setSelectedTasks((prev) => {
-        const newSelectedTasks = { ...prev };
-        delete newSelectedTasks[homeworkId];
-        return newSelectedTasks;
-      });
+      setSavedLessons((prev) =>
+        prev.filter((id) => Number(id) !== Number(activeLesson))
+      );
 
       showNotification("Homework deleted successfully!");
     } catch (error) {
       console.error("Error deleting homework:", error);
-
-      // More detailed error handling
       let errorMessage = "Failed to delete homework";
-      if (error.response) {
-        console.error("Error response:", error.response.data);
+      if (error?.response?.data) {
         errorMessage =
           error.response.data.message ||
           error.response.data.error ||
           errorMessage;
-      } else if (error.message) {
+      } else if (error?.message) {
         errorMessage = error.message;
       }
-
       showNotification(errorMessage, "error");
     }
   };
@@ -464,7 +294,9 @@ export default function LessonHomeworkSection() {
     setHomeworkForm({
       title: homework.title || "",
       description: homework.description || "",
-      due_date: homework.due_date ? homework.due_date.split("T")[0] : "",
+      due_date: homework.due_date
+        ? String(homework.due_date).split("T")[0]
+        : "",
     });
     setShowEditModal(true);
   };
@@ -517,7 +349,9 @@ export default function LessonHomeworkSection() {
 
   const activeHomeworks = lessonHomeworks[activeLesson] || [];
   const selectedHomeworkIds = selectedHomeworks[activeLesson] || [];
-  const activeLessonData = lessons.find((l) => l.id === activeLesson);
+  const activeLessonData = lessons.find(
+    (l) => Number(l.id) === Number(activeLesson)
+  );
 
   return (
     <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
@@ -526,12 +360,12 @@ export default function LessonHomeworkSection() {
           Assignment Distribution Manager
         </h2>
         <p className="opacity-90">
-          Assign lessons, homework, and tasks to your students
+          Assign lessons and homework to your students
         </p>
       </div>
 
       <div className="p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Lessons Column */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -542,12 +376,12 @@ export default function LessonHomeworkSection() {
 
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
               {lessons.map((lesson) => {
-                const isSaved = savedLessons.includes(lesson.id);
-                const isActive = activeLesson === lesson.id;
+                const isSaved = savedLessons.includes(Number(lesson.id));
+                const isActive = Number(activeLesson) === Number(lesson.id);
 
                 return (
                   <div
-                    key={lesson.id}
+                    key={String(lesson.id)}
                     onClick={() => handleLessonClick(lesson.id)}
                     className={`p-4 rounded-xl cursor-pointer transition-all duration-300 border-2 hover:shadow-lg transform hover:-translate-y-1
                       ${
@@ -611,221 +445,114 @@ export default function LessonHomeworkSection() {
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
                 <p className="mt-4 text-gray-600">Loading homework...</p>
               </div>
+            ) : activeHomeworks.length === 0 ? (
+              <div className="text-center py-12 bg-gray-50 rounded-xl">
+                <div className="text-4xl mb-3">📝</div>
+                <p className="text-gray-500 mb-4">
+                  No homework assignments yet
+                </p>
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Create First Homework
+                </button>
+              </div>
             ) : (
               <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
-                {activeHomeworks.length === 0 ? (
-                  <div className="text-center py-12 bg-gray-50 rounded-xl">
-                    <div className="text-4xl mb-3">📝</div>
-                    <p className="text-gray-500 mb-4">
-                      No homework assignments yet
-                    </p>
-                    <button
-                      onClick={() => setShowCreateModal(true)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      Create First Homework
-                    </button>
-                  </div>
-                ) : (
-                  activeHomeworks.map((homework) => {
-                    const isSelected = selectedHomeworkIds.includes(
-                      homework.id
-                    );
-                    return (
-                      <div
-                        key={homework.id}
-                        className={`p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-lg
+                {activeHomeworks.map((homework) => {
+                  const isSelected = selectedHomeworkIds.includes(
+                    Number(homework.id)
+                  );
+                  return (
+                    <div
+                      key={String(homework.id)}
+                      className={`p-4 rounded-xl border-2 transition-all duration-300 hover:shadow-lg
                           ${
                             isSelected
                               ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white border-blue-500 shadow-blue-200 shadow-lg"
                               : "bg-white border-gray-200 hover:border-blue-300"
                           }`}
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <h4
-                            className="font-semibold text-sm cursor-pointer flex-1"
-                            onClick={() => handleHomeworkClick(homework.id)}
-                          >
-                            {homework.title}
-                          </h4>
-                          <div className="flex space-x-2 ml-2">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditModal(homework);
-                              }}
-                              className={`p-1.5 rounded-md transition-colors ${
-                                isSelected
-                                  ? "hover:bg-blue-400 text-white"
-                                  : "hover:bg-gray-100 text-gray-600"
-                              }`}
-                            >
-                              ✏️
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteHomework(homework.id);
-                              }}
-                              className={`p-1.5 rounded-md transition-colors ${
-                                isSelected
-                                  ? "hover:bg-red-400 text-white"
-                                  : "hover:bg-red-100 text-red-600"
-                              }`}
-                            >
-                              🗑️
-                            </button>
-                          </div>
-                        </div>
-                        <p
-                          className={`text-xs mb-3 cursor-pointer ${
-                            isSelected ? "opacity-90" : "text-gray-600"
-                          }`}
+                    >
+                      <div className="flex items-start justify-between mb-3">
+                        <h4
+                          className="font-semibold text-sm cursor-pointer flex-1"
                           onClick={() => handleHomeworkClick(homework.id)}
                         >
-                          {homework.description?.slice(0, 100)}...
-                        </p>
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={`text-xs px-2 py-1 rounded-full ${
+                          {homework.title}
+                        </h4>
+                        <div className="flex space-x-2 ml-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditModal(homework);
+                            }}
+                            className={`p-1.5 rounded-md transition-colors ${
                               isSelected
-                                ? "bg-white bg-opacity-20 text-white"
-                                : "bg-blue-100 text-blue-800"
+                                ? "hover:bg-blue-400 text-white"
+                                : "hover:bg-gray-100 text-gray-600"
                             }`}
                           >
-                            {homework.task_count || 0} tasks
-                          </span>
-                          {homework.created_at && (
-                            <span
-                              className={`text-xs ${
-                                isSelected ? "opacity-80" : "text-gray-500"
-                              }`}
-                            >
-                              {new Date(
-                                homework.created_at
-                              ).toLocaleDateString()}
-                            </span>
-                          )}
+                            ✏️
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteHomework(homework.id);
+                            }}
+                            className={`p-1.5 rounded-md transition-colors ${
+                              isSelected
+                                ? "hover:bg-red-400 text-white"
+                                : "hover:bg-red-100 text-red-600"
+                            }`}
+                          >
+                            🗑️
+                          </button>
                         </div>
                       </div>
-                    );
-                  })
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Tasks Column */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-gray-800">Tasks</h3>
-
-            <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-              {selectedHomeworkIds.length === 0 ? (
-                <div className="text-center py-16 bg-gray-50 rounded-xl">
-                  <div className="text-6xl mb-4">✅</div>
-                  <p className="text-gray-500 text-lg">
-                    Select homework to view tasks
-                  </p>
-                </div>
-              ) : (
-                selectedHomeworkIds.map((homeworkId) => {
-                  const homework = activeHomeworks.find(
-                    (hw) => hw.id === homeworkId
-                  );
-                  const tasks = homeworkTasks[homeworkId] || [];
-                  const selectedTaskIds = selectedTasks[homeworkId] || [];
-
-                  return (
-                    <div
-                      key={homeworkId}
-                      className="bg-white rounded-xl border border-gray-200 p-4"
-                    >
-                      <h4 className="font-semibold text-gray-800 mb-3 border-b border-gray-100 pb-2">
-                        📋 {homework?.title}
-                      </h4>
-
-                      {loadingTasks ? (
-                        <div className="text-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                          <p className="text-sm mt-2 text-gray-600">
-                            Loading tasks...
-                          </p>
-                        </div>
-                      ) : tasks.length === 0 ? (
-                        <div className="text-center py-6 text-gray-500">
-                          <div className="text-3xl mb-2">📝</div>
-                          <p className="text-sm">No tasks available</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {tasks.map((task) => {
-                            const isTaskSelected = selectedTaskIds.includes(
-                              task.id
-                            );
-                            return (
-                              <div
-                                key={task.id}
-                                onClick={() =>
-                                  handleTaskClick(homeworkId, task.id)
-                                }
-                                className={`p-3 rounded-lg border-2 cursor-pointer transition-all duration-300 hover:shadow-md
-                                  ${
-                                    isTaskSelected
-                                      ? "bg-gradient-to-r from-green-500 to-green-600 text-white border-green-500"
-                                      : "bg-gray-50 border-gray-200 hover:border-green-300"
-                                  }`}
-                              >
-                                <div className="font-medium text-sm mb-1">
-                                  {task.title}
-                                </div>
-                                <div
-                                  className={`text-xs mb-2 ${
-                                    isTaskSelected
-                                      ? "opacity-90"
-                                      : "text-gray-600"
-                                  }`}
-                                >
-                                  {task.description?.slice(0, 80)}...
-                                </div>
-                                <div className="flex items-center justify-between">
-                                  <span
-                                    className={`text-xs px-2 py-1 rounded-full ${
-                                      isTaskSelected
-                                        ? "bg-white bg-opacity-20 text-white"
-                                        : "bg-blue-100 text-blue-800"
-                                    }`}
-                                  >
-                                    {task.test_case_count || 0} test cases
-                                  </span>
-                                  <span
-                                    className={`text-xs ${
-                                      isTaskSelected
-                                        ? "opacity-80"
-                                        : "text-gray-500"
-                                    }`}
-                                  >
-                                    {task.submission_count || 0} submissions
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
+                      <p
+                        className={`text-xs mb-3 cursor-pointer ${
+                          isSelected ? "opacity-90" : "text-gray-600"
+                        }`}
+                        onClick={() => handleHomeworkClick(homework.id)}
+                      >
+                        {homework.description?.slice(0, 100)}...
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-xs px-2 py-1 rounded-full ${
+                            isSelected
+                              ? "bg-white bg-opacity-20 text-white"
+                              : "bg-blue-100 text-blue-800"
+                          }`}
+                        >
+                          {homework.task_count || 0} tasks
+                        </span>
+                        {homework.created_at && (
+                          <span
+                            className={`text-xs ${
+                              isSelected ? "opacity-80" : "text-gray-500"
+                            }`}
+                          >
+                            {new Date(homework.created_at).toLocaleDateString()}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   );
-                })
-              )}
-            </div>
+                })}
 
-            {hasSelections() && (
-              <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4">
-                <button
-                  onClick={handleSave}
-                  className="w-full py-3 bg-white text-green-600 font-bold rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  💾 Save Lesson Selection
-                </button>
+                {/* Save area */}
+                {hasSelections() && (
+                  <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-4 mt-4">
+                    <button
+                      onClick={handleSave}
+                      className="w-full py-3 bg-white text-green-600 font-bold rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      💾 Save Lesson Selection
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

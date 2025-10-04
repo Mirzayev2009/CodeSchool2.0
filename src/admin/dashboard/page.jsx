@@ -611,7 +611,7 @@ export default function AdminDashboard() {
                       role="menu"
                       aria-label="Hisob menyusi"
                     >
-                      <button
+                      {/* <button
                         onClick={() => {
                           setIsProfileOpen(false);
                           navigate("/admin/profile");
@@ -619,7 +619,7 @@ export default function AdminDashboard() {
                         className="w-full text-left px-4 py-3 hover:bg-gray-50"
                       >
                         Profil
-                      </button>
+                      </button> */}
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-3 hover:bg-red-500"
