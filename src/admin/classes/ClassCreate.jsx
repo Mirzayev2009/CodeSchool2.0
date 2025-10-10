@@ -41,6 +41,7 @@ export default function ClassCreate() {
     prerequisites: [], // strings
     enrollmentLimit: "",
     notificationsEnabled: false,
+    duration_weeks: "",
     groups: [
       // default group
       {
@@ -84,6 +85,7 @@ export default function ClassCreate() {
           prerequisites: data.prerequisites ?? [],
           enrollmentLimit: data.enrollmentLimit ?? "",
           notificationsEnabled: data.notificationsEnabled ?? false,
+          duration_weeks: Number(data.duration_weeks) || "",
           // If backend returned groups nested under course use them, otherwise keep empty/default
           groups:
             data.groups && Array.isArray(data.groups) && data.groups.length
@@ -272,7 +274,6 @@ export default function ClassCreate() {
       prerequisites: (s.prerequisites || []).filter((_, i) => i !== index),
     }));
 
-  // validations (unchanged besides messages)
   const validate = () => {
     if (!form.title.trim()) {
       alert("Sarlavha kiritilishi shart.");
@@ -290,7 +291,13 @@ export default function ClassCreate() {
       alert("Manzil kiritilishi shart.");
       return false;
     }
-    // groups must have a name & teacher
+
+    // NEW: duration_weeks must be present and positive
+    if (!form.duration_weeks || Number(form.duration_weeks) <= 0) {
+      alert("Davomiylik (hafta) musbat son bo'lishi kerak.");
+      return false;
+    }
+
     for (const g of form.groups) {
       if (!g.name.trim()) {
         alert("Har bir guruhga nom kerak.");
@@ -330,6 +337,7 @@ export default function ClassCreate() {
       prerequisites: form.prerequisites,
       enrollmentLimit: form.enrollmentLimit,
       notificationsEnabled: form.notificationsEnabled,
+      duration_weeks: Number(form.duration_weeks) || null,
       // do NOT include groups array to avoid double handling; backend may accept nested groups but we'll manage groups explicitly
     };
 
@@ -422,6 +430,7 @@ export default function ClassCreate() {
             prerequisites: [],
             enrollmentLimit: "",
             notificationsEnabled: false,
+            duration_weeks: "",
             groups: [
               {
                 id: uid("g"),
@@ -537,6 +546,20 @@ export default function ClassCreate() {
                     value={form.price}
                     onChange={(e) => setField("price", e.target.value)}
                     className="mt-1 w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+                {/* add this next to the other top fields */}
+                <div>
+                  <label className="block text-sm text-gray-700">
+                    Davomiylik (hafta) *
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={form.duration_weeks}
+                    onChange={(e) => setField("duration_weeks", e.target.value)}
+                    className="mt-1 w-full px-3 py-2 border rounded-md"
+                    placeholder="Masalan: 8"
                   />
                 </div>
 

@@ -21,6 +21,8 @@ export default function CourseCreate() {
 
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [form, setForm] = useState({
+    title: "",
+    duration_weeks: "",
     uz: "",
     ru: "",
     price: "",
@@ -38,6 +40,8 @@ export default function CourseCreate() {
       getCourse(editingId, token)
         .then((data) => {
           setForm({
+            title: data.title || "",
+            duration_weeks: data.duration_weeks || "",
             uz: data.uz || "",
             ru: data.ru || "",
             price: data.price || "",
@@ -74,6 +78,14 @@ export default function CourseCreate() {
   };
 
   const validate = () => {
+    if (!form.title.trim()) {
+      alert("Kurs nomi (Title) majburiy.");
+      return false;
+    }
+    if (!form.duration_weeks || Number(form.duration_weeks) <= 0) {
+      alert("Davomiyligi (haftalarda) majburiy va musbat son bo'lishi kerak.");
+      return false;
+    }
     if (!form.uz.trim()) {
       alert("Darslik nomi (Uz) majburiy.");
       return false;
@@ -97,12 +109,20 @@ export default function CourseCreate() {
     if (!validate()) return;
     const token = localStorage.getItem("token");
     try {
+      const payload = {
+        title: form.title,
+        duration_weeks: Number(form.duration_weeks),
+        uz: form.uz,
+        ru: form.ru,
+        price: Number(form.price),
+        address: form.address,
+        description: form.description,
+        active: form.active,
+        image: form.image,
+      };
+
       if (editingId) {
-        await updateCourse(
-          editingId,
-          { ...form, price: Number(form.price) },
-          token
-        );
+        await updateCourse(editingId, payload, token);
         if (stay) {
           alert("Saqlandi");
         } else {
@@ -111,14 +131,15 @@ export default function CourseCreate() {
       } else {
         await createCourse(
           {
-            ...form,
-            price: Number(form.price),
+            ...payload,
             createdAt: new Date().toISOString().slice(0, 10),
           },
           token
         );
         if (stay) {
           setForm({
+            title: "",
+            duration_weeks: "",
             uz: "",
             ru: "",
             price: "",
@@ -152,7 +173,7 @@ export default function CourseCreate() {
           <div className="max-w-3xl mx-auto">
             <div className="mb-6">
               <h1 className="text-2xl font-bold text-gray-900">
-                {editingId ? "Darslikni tahrirlash" : "Yangi darslik qo‘shish"}
+                {editingId ? "Darslikni tahrirlash" : "Yangi darslik qo'shish"}
               </h1>
               <p className="text-sm text-gray-600">
                 Kerakli maydonlarni to'ldiring va saqlang.
@@ -161,6 +182,41 @@ export default function CourseCreate() {
 
             <div className="bg-white p-6 rounded-xl shadow">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="text-sm text-gray-700">
+                    Kurs nomi (Title) *
+                  </label>
+                  <input
+                    value={form.title}
+                    onChange={(e) => setField("title", e.target.value)}
+                    className="mt-1 w-full px-3 py-2 border rounded-md"
+                    placeholder="Masalan: Python Kursi"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-700">
+                    Davomiyligi (haftalarda) *
+                  </label>
+                  <input
+                    type="number"
+                    value={form.duration_weeks}
+                    onChange={(e) => setField("duration_weeks", e.target.value)}
+                    className="mt-1 w-full px-3 py-2 border rounded-md"
+                    placeholder="Masalan: 12"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm text-gray-700">Narxi *</label>
+                  <input
+                    type="number"
+                    value={form.price}
+                    onChange={(e) => setField("price", e.target.value)}
+                    className="mt-1 w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+
                 <div>
                   <label className="text-sm text-gray-700">
                     Darslik nomi (Uz) *
@@ -183,17 +239,7 @@ export default function CourseCreate() {
                   />
                 </div>
 
-                <div>
-                  <label className="text-sm text-gray-700">Narxi *</label>
-                  <input
-                    type="number"
-                    value={form.price}
-                    onChange={(e) => setField("price", e.target.value)}
-                    className="mt-1 w-full px-3 py-2 border rounded-md"
-                  />
-                </div>
-
-                <div>
+                <div className="md:col-span-2">
                   <label className="text-sm text-gray-700">Manzil *</label>
                   <select
                     value={form.address}

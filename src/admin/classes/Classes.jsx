@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AdminSidebar from "../../../components/AdminSidebar";
@@ -13,30 +11,57 @@ import {
   createGroup,
 } from "../API/AdminPanelApi";
 
-function formatCurrency(n) {
-  if (n == null) return "-";
-  return n.toLocaleString();
+// Helper function to format date for display
+function formatDate(dateString) {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleDateString("uz-UZ", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
+
+// Helper function to transform backend group data into frontend class format
+const transformApiData = (group) => {
+  return {
+    // Direct mapping
+    id: group.id,
+    title: group.name, // 'name' from backend is 'title' in frontend
+    createdAt: group.created_date,
+    studentCount: group.student_count,
+    teacherCount: group.teacher_count,
+    teachers: group.teachers || [], // Assuming 'teachers' is an array of IDs
+
+    // Adding placeholder data for fields missing in the API response
+    // You can adjust these or connect them to real data if it becomes available
+    code: `ID-${group.id}`,
+    price: group.total_payments || 0, // Using total_payments as price, adjust if needed
+    location: "Noma'lum", // Placeholder location
+    tags: ["Umumiy"], // Placeholder tags
+    active: true, // Defaulting to 'active', as the API doesn't provide this status
+  };
+};
 
 export default function Classes() {
   const [isSidebarOpen] = useState(true);
   const navigate = useNavigate();
 
-  // No sample data — start empty and show loading state while we fetch from API
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all"); // all | active | inactive
+  // NOTE: 'active' status is not supported by your API data.
+  // I've removed the filter, but left the logic here in case you add it back.
+  // const [statusFilter, setStatusFilter] = useState("all");
   const [teacherFilter, setTeacherFilter] = useState("all");
   const [sortKey, setSortKey] = useState("createdAt");
   const [sortDir, setSortDir] = useState("desc");
   const [selected, setSelected] = useState([]);
 
-  const token = localStorage.getItem("token"); // adjust if you store token elsewhere
+  const token = localStorage.getItem("token");
 
-  // load groups from API and replace local list when successful
+  // Load groups from API and transform data for the UI
   useEffect(() => {
     let cancelled = false;
 
@@ -47,17 +72,20 @@ export default function Classes() {
         const res = await getGroups(token);
         if (cancelled) return;
 
+        let rawData = [];
         if (Array.isArray(res)) {
-          setClasses(res);
+          rawData = res;
         } else if (res && Array.isArray(res.results)) {
-          setClasses(res.results);
+          rawData = res.results;
         } else if (res && Array.isArray(res.data)) {
-          setClasses(res.data);
+          rawData = res.data;
         } else {
-          // unexpected shape — set to empty and report
           console.warn("getGroups returned unexpected shape");
-          setClasses([]);
         }
+
+        // Transform the raw API data to match the structure our component expects
+        const transformedData = rawData.map(transformApiData);
+        setClasses(transformedData);
       } catch (err) {
         console.error("Failed to load groups from API:", err);
         setError(
@@ -73,53 +101,51 @@ export default function Classes() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  // The teacher list is now derived from teacher IDs.
+  // In a real app, you would fetch teacher names based on these IDs.
   const teachers = useMemo(() => {
-    const setT = new Set();
-    classes.forEach((c) =>
-      (c.groups || []).forEach((g) => g.teacher && setT.add(g.teacher))
-    );
-    return ["all", ...Array.from(setT)];
+    const teacherIds = new Set();
+    classes.forEach((c) => {
+      (c.teachers || []).forEach((teacherId) => teacherIds.add(teacherId));
+    });
+    // Creating placeholder names like "O'qituvchi 23"
+    return ["all", ...Array.from(teacherIds).map((id) => `O'qituvchi ${id}`)];
   }, [classes]);
 
   const filtered = useMemo(() => {
-    let arr = classes.slice();
+    let arr = [...classes];
 
     if (search.trim()) {
       const q = search.toLowerCase();
       arr = arr.filter(
         (c) =>
           (c.title && c.title.toLowerCase().includes(q)) ||
-          (c.code && c.code.toLowerCase().includes(q)) ||
-          (c.location && c.location.toLowerCase().includes(q)) ||
-          (c.tags && c.tags.join(" ").toLowerCase().includes(q))
+          (c.code && c.code.toLowerCase().includes(q))
       );
     }
 
-    if (statusFilter === "active") arr = arr.filter((c) => c.active);
-    if (statusFilter === "inactive") arr = arr.filter((c) => !c.active);
     if (teacherFilter !== "all") {
-      arr = arr.filter((c) =>
-        (c.groups || []).some((g) => g.teacher === teacherFilter)
-      );
+      const selectedTeacherId = parseInt(teacherFilter.split(" ")[1]);
+      arr = arr.filter((c) => (c.teachers || []).includes(selectedTeacherId));
     }
 
     arr.sort((a, b) => {
       let res = 0;
       if (sortKey === "price") res = (a.price || 0) - (b.price || 0);
       if (sortKey === "createdAt")
-        res = new Date(a.createdAt) - new Date(b.createdAt);
+        res = new Date(b.createdAt) - new Date(a.createdAt); // Note: Swapped for correct default desc
       if (sortKey === "title")
         res = (a.title || "").localeCompare(b.title || "");
       return sortDir === "asc" ? res : -res;
     });
 
     return arr;
-  }, [classes, search, statusFilter, teacherFilter, sortKey, sortDir]);
+  }, [classes, search, teacherFilter, sortKey, sortDir]);
 
-  // selection helpers
+  // --- Action Handlers ---
+
   const toggleSelect = (id) =>
     setSelected((s) =>
       s.includes(id) ? s.filter((x) => x !== id) : [...s, id]
@@ -127,147 +153,77 @@ export default function Classes() {
   const toggleSelectAllFiltered = (checked) =>
     setSelected(checked ? filtered.map((x) => x.id) : []);
 
-  // Delete single class (group) via API; keep UI responsive on failure
   const deleteClass = async (id) => {
-    if (!confirm("Ushbu kursni o'chirishni tasdiqlaysizmi?")) return;
+    if (!window.confirm("Ushbu guruhni o'chirishni tasdiqlaysizmi?")) return;
+    const originalClasses = [...classes];
+    setClasses((prev) => prev.filter((x) => x.id !== id));
+    setSelected((s) => s.filter((x) => x !== id));
     try {
       await deleteGroup(id, token);
-      setClasses((prev) => prev.filter((x) => x.id !== id));
-      setSelected((s) => s.filter((x) => x !== id));
     } catch (err) {
-      console.error("Delete failed, applying local remove:", err);
-      setClasses((prev) => prev.filter((x) => x.id !== id));
-      setSelected((s) => s.filter((x) => x !== id));
+      console.error("Delete failed, reverting UI change:", err);
+      setClasses(originalClasses); // Revert on failure
     }
   };
 
-  // Bulk delete selected classes via API (best-effort)
   const bulkDelete = async () => {
-    if (selected.length === 0) return;
     if (
-      !confirm(
-        `${selected.length} ta tanlangan kursni o'chirishni tasdiqlaysizmi?`
+      selected.length === 0 ||
+      !window.confirm(
+        `${selected.length} ta tanlangan guruhni o'chirishni tasdiqlaysizmi?`
       )
     )
       return;
+    const originalClasses = [...classes];
+    setClasses((prev) => prev.filter((c) => !selected.includes(c.id)));
+    const oldSelected = [...selected];
+    setSelected([]);
     try {
-      await Promise.all(
-        selected.map((id) =>
-          deleteGroup(id, token).catch((e) => {
-            console.error(`Delete failed for ${id}`, e);
-          })
-        )
-      );
-      setClasses((prev) => prev.filter((c) => !selected.includes(c.id)));
-      setSelected([]);
+      await Promise.all(selected.map((id) => deleteGroup(id, token)));
     } catch (err) {
       console.error("Bulk delete encountered an error:", err);
-      setClasses((prev) => prev.filter((c) => !selected.includes(c.id)));
-      setSelected([]);
+      setClasses(originalClasses); // Revert on failure
+      setSelected(oldSelected);
     }
   };
 
-  // Duplicate a class: tries to create new group via API; if fails, creates local copy
   const duplicateClass = async (id) => {
     const found = classes.find((c) => c.id === id);
     if (!found) return;
-    const payload = { ...found };
-    delete payload.id;
-    payload.title = `${found.title} (nusxa)`;
-    payload.createdAt = new Date().toISOString().slice(0, 10);
+
+    // The payload for the API must match the backend's expected format
+    const payload = {
+      name: `${found.title} (nusxa)`,
+      // Add other required fields for creation if your backend needs them
+    };
 
     try {
-      const created = await createGroup(payload, token);
-      if (created && (created.id || created.pk)) {
-        setClasses((prev) => [created, ...prev]);
-      } else if (created && Array.isArray(created)) {
-        setClasses((prev) => [created[0], ...prev]);
-      } else {
-        const copy = {
-          ...found,
-          id: `cl-${Date.now()}`,
-          title: `${found.title} (nusxa)`,
-          createdAt: payload.createdAt,
-        };
-        setClasses((prev) => [copy, ...prev]);
+      const createdGroup = await createGroup(payload, token);
+      if (createdGroup && createdGroup.id) {
+        // Transform the new group and add it to the state
+        const newClass = transformApiData(createdGroup);
+        setClasses((prev) => [newClass, ...prev]);
       }
     } catch (err) {
-      console.error(
-        "Duplicate via API failed, creating local copy instead:",
-        err
-      );
-      const copy = {
-        ...found,
-        id: `cl-${Date.now()}`,
-        title: `${found.title} (nusxa)`,
-        createdAt: payload.createdAt,
-      };
-      setClasses((prev) => [copy, ...prev]);
-    }
-  };
-
-  // Toggle active flag by PATCHing group on backend (or local fallback)
-  const toggleActive = async (id) => {
-    const current = classes.find((c) => c.id === id);
-    if (!current) return;
-    const newActive = !current.active;
-    try {
-      const updated = await patchGroup(id, { active: newActive }, token);
-      if (updated && updated.id) {
-        setClasses((prev) => prev.map((c) => (c.id === id ? updated : c)));
-      } else {
-        setClasses((prev) =>
-          prev.map((c) => (c.id === id ? { ...c, active: newActive } : c))
-        );
-      }
-    } catch (err) {
-      console.error("Toggle active failed, applying locally:", err);
-      setClasses((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, active: newActive } : c))
-      );
-    }
-  };
-
-  // Bulk activate selected classes
-  const bulkActivate = async () => {
-    if (selected.length === 0) return;
-    try {
-      await Promise.all(
-        selected.map((id) =>
-          patchGroup(id, { active: true }, token).catch((e) => {
-            console.error(`Activate failed for ${id}`, e);
-          })
-        )
-      );
-      setClasses((prev) =>
-        prev.map((c) => (selected.includes(c.id) ? { ...c, active: true } : c))
-      );
-      setSelected([]);
-    } catch (err) {
-      console.error("Bulk activate encountered an error:", err);
-      setClasses((prev) =>
-        prev.map((c) => (selected.includes(c.id) ? { ...c, active: true } : c))
-      );
-      setSelected([]);
+      console.error("Duplicate via API failed:", err);
+      // You might want to show an error notification to the user
     }
   };
 
   const retryLoad = () => {
-    // re-run effect by toggling loading and calling API again
-    setLoading(true);
-    setError(null);
-    // effect will rerun only if token changes, so directly call API
+    // This effect will re-run automatically if you just clear the error
+    // and set loading, because the dependency array [token] doesn't change.
+    // So we manually call the logic again.
     (async () => {
+      setLoading(true);
+      setError(null);
       try {
         const res = await getGroups(token);
-        if (Array.isArray(res)) setClasses(res);
-        else if (res && Array.isArray(res.results)) setClasses(res.results);
-        else if (res && Array.isArray(res.data)) setClasses(res.data);
-        else setClasses([]);
+        let rawData = Array.isArray(res) ? res : [];
+        const transformedData = rawData.map(transformApiData);
+        setClasses(transformedData);
       } catch (err) {
-        console.error("Retry failed:", err);
-        setError("Ma'lumotlarni olishda xato. Keyinroq urinib ko'ring.");
-        setClasses([]);
+        setError("Ma'lumotlarni qayta yuklashda xato.");
       } finally {
         setLoading(false);
       }
@@ -297,45 +253,38 @@ export default function Classes() {
             {/* header */}
             <div className="mb-6 flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Kurslar</h1>
+                <h1 className="text-3xl font-bold text-gray-900">Guruhlar</h1>
                 <p className="text-gray-600">
-                  Guruhlar va kurslarni boshqaring — tezkor harakatlar pastda.
+                  Mavjud guruhlarni boshqaring va yangilarini yarating.
                 </p>
               </div>
-
               <div className="flex items-center gap-3">
                 <div className="text-sm text-gray-600">
-                  <div>
-                    Total:{" "}
-                    <span className="font-medium text-gray-900">
-                      {loading ? (
-                        <span className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></span>
-                      ) : (
-                        classes.length
-                      )}
-                    </span>
-                  </div>
+                  Total:{" "}
+                  <span className="font-medium text-gray-900">
+                    {loading ? "..." : classes.length}
+                  </span>
                 </div>
                 <Link
                   to="/admin/classes/create"
                   className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                 >
-                  <Plus size={16} /> Yangi kurs
+                  <Plus size={16} /> Yangi guruh
                 </Link>
               </div>
             </div>
 
             {/* error banner */}
             {error && (
-              <div className="mb-4 p-4 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800 rounded">
+              <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-400 text-red-800 rounded">
                 <div className="flex items-center justify-between">
                   <div>{error}</div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={retryLoad}
-                      className="px-3 py-1 bg-yellow-100 rounded text-sm"
+                      className="px-3 py-1 bg-red-100 rounded text-sm font-semibold"
                     >
-                      Qayta yuklash
+                      Qayta urinish
                     </button>
                     <button
                       onClick={() => setError(null)}
@@ -349,7 +298,7 @@ export default function Classes() {
             )}
 
             {/* filters */}
-            <div className="mb-4 flex flex-col md:flex-row gap-3 items-stretch">
+            <div className="mb-4 flex flex-col md:flex-row gap-3">
               <div className="relative flex-1">
                 <Search
                   className="absolute top-3 left-3 text-gray-400"
@@ -358,20 +307,10 @@ export default function Classes() {
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Sarlavha, kod, manzil yoki teg bo'yicha qidirish..."
+                  placeholder="Guruh nomi bo'yicha qidirish..."
                   className="w-full pl-10 pr-4 py-2 border rounded-lg"
                 />
               </div>
-
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 border rounded-lg"
-              >
-                <option value="all">Barcha holatlar</option>
-                <option value="active">Faol</option>
-                <option value="inactive">Faol emas</option>
-              </select>
 
               <select
                 value={teacherFilter}
@@ -393,8 +332,8 @@ export default function Classes() {
                   className="px-2 py-2 border rounded-lg"
                 >
                   <option value="createdAt">Yaratilgan sana</option>
-                  <option value="price">Narx</option>
                   <option value="title">Sarlavha</option>
+                  <option value="price">To'lovlar</option>
                 </select>
 
                 <button
@@ -410,35 +349,32 @@ export default function Classes() {
 
             {/* bulk actions */}
             <div className="mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={
-                    selected.length > 0 &&
-                    selected.length === filtered.length &&
-                    filtered.length > 0
-                  }
-                  onChange={(e) => toggleSelectAllFiltered(e.target.checked)}
-                  className="h-4 w-4"
-                />
-                <div className="text-sm text-gray-600">
-                  {selected.length} ta tanlangan
-                </div>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={
+                      selected.length > 0 &&
+                      selected.length === filtered.length &&
+                      filtered.length > 0
+                    }
+                    onChange={(e) => toggleSelectAllFiltered(e.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  <span className="text-sm text-gray-600">
+                    {selected.length} ta tanlangan
+                  </span>
+                </label>
 
-                <button
-                  onClick={bulkActivate}
-                  className="px-2 py-1 text-sm border rounded-md"
-                >
-                  Faol qilish
-                </button>
-                <button
-                  onClick={bulkDelete}
-                  className="px-2 py-1 text-sm border rounded-md text-red-600"
-                >
-                  O'chirish
-                </button>
+                {selected.length > 0 && (
+                  <button
+                    onClick={bulkDelete}
+                    className="px-3 py-1 text-sm border rounded-md text-red-600 hover:bg-red-50"
+                  >
+                    O'chirish
+                  </button>
+                )}
               </div>
-
               <div className="text-sm text-gray-500">
                 Ko'rsatilmoqda: {filtered.length} ta natija
               </div>
@@ -447,14 +383,13 @@ export default function Classes() {
             {/* grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {loading
-                ? // show skeletons while loading
-                  Array.from({ length: 6 }).map((_, i) => (
+                ? Array.from({ length: 6 }).map((_, i) => (
                     <SkeletonCard key={i} />
                   ))
                 : filtered.map((c) => (
                     <div
                       key={c.id}
-                      className="bg-white border rounded-xl p-4 shadow-sm hover:shadow-md transition"
+                      className="bg-white border rounded-xl p-4 shadow-sm hover:shadow-lg transition-shadow duration-300"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3">
@@ -462,84 +397,77 @@ export default function Classes() {
                             type="checkbox"
                             checked={selected.includes(c.id)}
                             onChange={() => toggleSelect(c.id)}
-                            className="mt-1"
+                            className="mt-1.5 h-4 w-4"
                           />
                           <div>
-                            <div className="flex gap-2 items-center">
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                {c.title}
-                              </h3>
-                              {c.active && (
-                                <span className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full">
-                                  Faol
-                                </span>
-                              )}
-                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {c.title}
+                            </h3>
                             <p className="text-sm text-gray-500 mt-1">
-                              {c.code} • {c.tags?.join(", ")}
-                            </p>
-                            <p className="text-sm text-gray-700 mt-2">
-                              {c.location}
+                              {c.code}
                             </p>
                           </div>
                         </div>
-
-                        <div className="text-right text-xs text-gray-500">
-                          <div>{c.createdAt}</div>
-                          <div className="mt-2 font-semibold text-indigo-600">
-                            {formatCurrency(c.price)} UZS
-                          </div>
+                        <div className="text-right text-xs text-gray-500 flex-shrink-0">
+                          {formatDate(c.createdAt)}
                         </div>
                       </div>
 
-                      <div className="mt-3 text-sm text-gray-600">
-                        Guruhlar:{" "}
-                        <span className="font-medium text-gray-800">
-                          {(c.groups || []).length}
-                        </span>
+                      <div className="mt-4 border-t pt-3 text-sm text-gray-600 space-y-2">
+                        <div className="flex justify-between">
+                          <span>Talabalar:</span>
+                          <span className="font-medium text-gray-800">
+                            {c.studentCount}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>O'qituvchilar:</span>
+                          <span className="font-medium text-gray-800">
+                            {c.teacherCount}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Jami to'lov:</span>
+                          <span className="font-semibold text-indigo-600">
+                            {c.price.toLocaleString()} UZS
+                          </span>
+                        </div>
                       </div>
 
-                      <div className="mt-4 flex items-center justify-between gap-2">
+                      <div className="mt-4 flex items-center justify-between gap-2 border-t pt-3">
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() =>
-                              navigate(`/admin/classes/create?id=${c.id}`)
+                              navigate(`/admin/classes/edit/${c.id}`)
                             }
                             title="Tahrirlash"
-                            className="px-2 py-1 border rounded-md text-sm flex items-center gap-2"
+                            className="px-3 py-1 border rounded-md text-sm flex items-center gap-2 hover:bg-gray-50"
                           >
-                            <Edit size={14} /> Tahrirlash
+                            <Edit size={14} /> Tahrir
                           </button>
                           <button
                             onClick={() => duplicateClass(c.id)}
-                            className="px-2 py-1 border rounded-md text-sm"
+                            className="px-3 py-1 border rounded-md text-sm hover:bg-gray-50"
                           >
                             Nusxalash
                           </button>
                         </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => toggleActive(c.id)}
-                            className="px-2 py-1 border rounded-md text-sm"
-                          >
-                            {c.active ? "Faoliyatni o'chirish" : "Faol qilish"}
-                          </button>
-                          <button
-                            onClick={() => deleteClass(c.id)}
-                            className="px-2 py-1 border rounded-md text-sm text-red-600"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => deleteClass(c.id)}
+                          className="p-2 border rounded-md text-sm text-red-600 hover:bg-red-50"
+                          title="O'chirish"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
                   ))}
             </div>
 
             {!loading && filtered.length === 0 && (
-              <div className="mt-6 text-center text-gray-500">
-                Kurs topilmadi. Boshlash uchun yangi kurs qo'shing.
+              <div className="mt-8 text-center text-gray-500 py-10 border-2 border-dashed rounded-lg">
+                <h3 className="text-xl font-semibold">Guruhlar topilmadi</h3>
+                <p className="mt-2">Boshlash uchun yangi guruh qo'shing.</p>
               </div>
             )}
           </div>

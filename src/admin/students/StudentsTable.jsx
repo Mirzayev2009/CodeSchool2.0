@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+// src/components/StudentsTable.jsx
+import React, { useMemo, useState, useEffect } from "react";
 import {
   patchStudent as apiPatchStudent,
   deleteStudent as apiDeleteStudent,
@@ -66,7 +66,6 @@ export default function StudentsTable({
     }
   };
 
-  // panel: { type: 'view' | 'edit' | 'delete' | null, student: object | null }
   const [panel, setPanel] = useState({ type: null, student: null });
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -80,23 +79,21 @@ export default function StudentsTable({
     grades: "",
   });
 
-  // populate edit form when opening edit
   useEffect(() => {
     if (panel.type === "edit" && panel.student) {
       const s = panel.student;
       setForm({
-        name: s.name ?? "",
+        name: s.full_name ?? s.name ?? "",
         email: s.email ?? "",
-        phone: s.phone ?? "",
+        phone: s.phone_number ?? s.phone ?? "",
         classVal: s.class ?? s.group ?? "",
-        status: s.status ?? "",
+        status: s.status ?? (s.active ? "Active" : "Inactive") ?? "",
         attendance: s.attendance ?? "",
         grades: s.grades ?? s.grade ?? "",
       });
     }
   }, [panel.type, panel.student]);
 
-  // Escape handling: closes only view/edit (NOT delete)
   useEffect(() => {
     function onKey(e) {
       if (e.key === "Escape") {
@@ -111,12 +108,13 @@ export default function StudentsTable({
 
   const getToken = () => localStorage.getItem("token");
 
-  // Save edit
+  // Save edit (build payload and send PATCH)
   const saveEdit = async () => {
     if (!panel.student) return;
     setActionLoading(true);
 
     const payload = {};
+    // name / full_name / first_name / last_name
     if (form.name !== undefined) {
       payload.full_name = form.name;
       payload.name = form.name;
@@ -151,21 +149,41 @@ export default function StudentsTable({
       payload.is_active = activeBool;
     }
 
+    // Log before sending
+    console.log(
+      "[StudentsTable] saveEdit payload:",
+      payload,
+      "studentId:",
+      panel.student.id
+    );
+
     try {
       const token = getToken();
-      await apiPatchStudent(panel.student.id, payload, token);
+      const resp = await apiPatchStudent(panel.student.id, payload, token);
+      console.log("[StudentsTable] saveEdit response:", resp);
+
+      // If server returned updated object, refresh UI immediately
+      if (resp && resp.id) {
+        // best-effort: call parent refresh, if available
+        if (typeof refresh === "function") {
+          await refresh();
+        }
+      }
+
       alert("O'zgartirishlar saqlandi.");
       setPanel({ type: null, student: null });
-      if (typeof refresh === "function") refresh();
     } catch (err) {
       console.error("saveEdit error", err);
-      alert("Saqlashda xatolik yuz berdi. Konsolga qarang.");
+      const msg =
+        (err?.response && JSON.stringify(err.response)) ||
+        err.message ||
+        "Unknown error";
+      alert("Saqlashda xatolik yuz berdi. Konsolga qarang. " + msg);
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Delete confirmation
   const confirmDelete = async () => {
     if (!panel.student) return;
     setActionLoading(true);
@@ -196,27 +214,38 @@ export default function StudentsTable({
   const closePanel = () => setPanel({ type: null, student: null });
 
   const toggleStatus = async (student) => {
+    console.log(
+      "[StudentsTable] toggleStatus called for:",
+      student && student.id
+    );
     if (typeof onToggleStatus === "function" && onToggleStatus !== null) {
       onToggleStatus(student);
       return;
     }
     const currentActive =
       student.__raw?.active ??
-      (student.status === "Active"
-        ? true
-        : student.status === "Inactive"
-        ? false
-        : undefined);
+      String(student.status || "").toLowerCase() === "active" ??
+      !!student.active;
     const newActive = !(currentActive === true);
     setActionLoading(true);
     try {
       const token = getToken();
-      await apiPatchStudent(
-        student.id,
-        { active: newActive, is_active: newActive },
-        token
+      const payload = {
+        active: newActive,
+        is_active: newActive,
+        status: newActive ? "Active" : "Inactive",
+      };
+      console.log(
+        "[StudentsTable] toggleStatus payload:",
+        payload,
+        "studentId:",
+        student.id
       );
-      if (typeof refresh === "function") refresh();
+      const resp = await apiPatchStudent(student.id, payload, token);
+      console.log("[StudentsTable] toggleStatus response:", resp);
+      if (typeof refresh === "function") {
+        await refresh();
+      }
     } catch (err) {
       console.error("patchStudent error", err);
       alert("Holatni yangilashda xatolik yuz berdi. Konsolga qarang.");
@@ -274,7 +303,7 @@ export default function StudentsTable({
                 <div className="flex items-center">
                   <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
                     <span className="text-purple-600 font-semibold text-sm">
-                      {String(student.name || "")
+                      {String(student.full_name || student.name || "")
                         .split(" ")
                         .map((n) => n?.[0] ?? "")
                         .join("")}
@@ -282,10 +311,12 @@ export default function StudentsTable({
                   </div>
                   <div className="ml-4">
                     <div className="text-sm font-medium text-gray-900">
-                      {student.name}
+                      {student.full_name ?? student.name}
                     </div>
                     <div className="text-sm text-gray-500">{student.email}</div>
-                    <div className="text-xs text-gray-400">{student.phone}</div>
+                    <div className="text-xs text-gray-400">
+                      {student.phone_number ?? student.phone}
+                    </div>
                   </div>
                 </div>
               </td>
@@ -296,7 +327,7 @@ export default function StudentsTable({
 
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm text-gray-900">
-                  {student.enrollmentDate}
+                  {student.created_at ?? student.enrollmentDate}
                 </div>
               </td>
 
@@ -306,12 +337,15 @@ export default function StudentsTable({
                     student.status
                   )}`}
                 >
-                  {localStatusLabel(student.status)}
+                  {localStatusLabel(
+                    student.status ?? (student.active ? "Active" : "Inactive")
+                  )}
                 </span>
                 <div className="mt-2">
                   <button
                     onClick={() => toggleStatus(student)}
                     className="mt-1 text-xs px-2 py-1 border rounded-md"
+                    disabled={actionLoading}
                   >
                     Holatni almashtirish
                   </button>
@@ -375,23 +409,19 @@ export default function StudentsTable({
         </div>
       )}
 
-      {/* ---------- Centered modal used for VIEW, EDIT, and DELETE (delete has stricter behavior) ---------- */}
       {panel.type && panel.student && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center"
           aria-modal="true"
           role="dialog"
         >
-          {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black opacity-50"
-            // Only allow backdrop click to close for view/edit (NOT delete)
             onClick={() => {
               if (panel.type !== "delete") closePanel();
             }}
           />
 
-          {/* Modal content */}
           <div className="relative z-10 bg-white rounded-lg shadow-lg w-full max-w-3xl mx-4 max-h-[90vh] overflow-auto p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-semibold">
@@ -399,11 +429,8 @@ export default function StudentsTable({
                 {panel.type === "edit" && `Talaba — Tahrirlash`}
                 {panel.type === "delete" && `Talabani o'chirish`}
               </h3>
-              {/* Close button: for delete we still allow explicit cancel, but keep the 'X' to close as cancel */}
               <button
                 onClick={() => {
-                  // Do not allow closing by 'X' if you want stricter behavior — but user wanted centered delete with explicit cancel/confirm.
-                  // Here X behaves same as Cancel for delete.
                   closePanel();
                 }}
                 className="text-gray-500"
@@ -412,13 +439,12 @@ export default function StudentsTable({
               </button>
             </div>
 
-            {/* VIEW */}
             {panel.type === "view" && panel.student && (
               <div className="space-y-3">
                 <div>
                   <div className="text-xs text-gray-500">Ism</div>
                   <div className="text-sm font-medium">
-                    {panel.student.name}
+                    {panel.student.full_name ?? panel.student.name}
                   </div>
                 </div>
 
@@ -429,7 +455,9 @@ export default function StudentsTable({
 
                 <div>
                   <div className="text-xs text-gray-500">Telefon</div>
-                  <div className="text-sm">{panel.student.phone || "-"}</div>
+                  <div className="text-sm">
+                    {panel.student.phone_number || panel.student.phone || "-"}
+                  </div>
                 </div>
 
                 <div>
@@ -442,14 +470,17 @@ export default function StudentsTable({
                     Ro'yxatga olish sanasi
                   </div>
                   <div className="text-sm">
-                    {panel.student.enrollmentDate || "-"}
+                    {panel.student.created_at || "-"}
                   </div>
                 </div>
 
                 <div>
                   <div className="text-xs text-gray-500">Holat</div>
                   <div className="text-sm">
-                    {localStatusLabel(panel.student.status)}
+                    {localStatusLabel(
+                      panel.student.status ??
+                        (panel.student.active ? "Active" : "Inactive")
+                    )}
                   </div>
                 </div>
 
@@ -478,7 +509,6 @@ export default function StudentsTable({
               </div>
             )}
 
-            {/* EDIT */}
             {panel.type === "edit" && panel.student && (
               <div className="space-y-4">
                 <div>
@@ -582,6 +612,7 @@ export default function StudentsTable({
                   <button
                     onClick={closePanel}
                     className="px-4 py-2 rounded border"
+                    disabled={actionLoading}
                   >
                     Bekor qilish
                   </button>
@@ -596,28 +627,19 @@ export default function StudentsTable({
               </div>
             )}
 
-            {/* DELETE */}
             {panel.type === "delete" && panel.student && (
               <div className="space-y-4">
                 <p>
-                  Siz <strong>{panel.student.name}</strong> ismli talabani{" "}
+                  Siz{" "}
+                  <strong>
+                    {panel.student.full_name ?? panel.student.name}
+                  </strong>{" "}
+                  ismli talabani{" "}
                   <span className="text-red-600 font-semibold">
                     o'chirmoqchi
                   </span>{" "}
                   siz. Bu amalni qaytara olmaysiz.
                 </p>
-                <div className="text-sm text-gray-500">
-                  <ul className="list-disc pl-5 mt-2">
-                    <li>
-                      Talabaning barcha bog'liq maydonlari (agar backend
-                      tomonidan shu tarzda) o'chirilishi mumkin.
-                    </li>
-                    <li>
-                      Agar tizimingizda bog'langan yozuvlar (to'lovlar, darslar)
-                      bo'lsa, ular alohida saqlanadi yoki cheklanishi mumkin.
-                    </li>
-                  </ul>
-                </div>
 
                 <div className="flex justify-end gap-3 pt-4">
                   <button

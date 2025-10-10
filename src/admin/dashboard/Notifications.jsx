@@ -32,15 +32,10 @@ export default function AdminNotificationsPage() {
   async function fetchNotifications() {
     try {
       setLoading(true);
-
-      // Fetch notifications based on filter
-      const notificationsData =
-        filter === "unread"
-          ? await getUnreadNotifications()
-          : await getNotifications();
-
-      // Fetch stats
-      const statsData = await getNotificationStats();
+      const [notificationsData, statsData] = await Promise.all([
+        filter === "unread" ? getUnreadNotifications() : getNotifications(),
+        getNotificationStats(),
+      ]);
 
       if (!mountedRef.current) return;
 
@@ -49,10 +44,7 @@ export default function AdminNotificationsPage() {
       setLastFetchAt(new Date().toLocaleString());
     } catch (error) {
       console.error("fetchNotifications error", error);
-      if (!mountedRef.current) return;
-
-      // Show error in UI but don't crash
-      if (error.response?.status === 401) {
+      if (mountedRef.current && error.response?.status === 401) {
         alert("Autentifikatsiya xatosi. Iltimos, qayta kiring.");
       }
     } finally {
@@ -63,86 +55,57 @@ export default function AdminNotificationsPage() {
   function startPolling() {
     fetchNotifications();
     if (timerRef.current) clearTimeout(timerRef.current);
-
-    const loop = async () => {
-      if (!mountedRef.current) return;
-      await fetchNotifications();
-      if (!mountedRef.current) return;
-      timerRef.current = setTimeout(loop, pollMs);
-    };
-
-    timerRef.current = setTimeout(loop, pollMs);
+    timerRef.current = setTimeout(startPolling, pollMs);
   }
 
   async function handleMarkAsRead(notification) {
     if (notification.is_read) return;
-
+    const originalNotifications = [...notifications];
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id === notification.id
+          ? { ...n, is_read: true, read_at: new Date().toISOString() }
+          : n
+      )
+    );
     try {
-      // Optimistically update UI
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notification.id
-            ? { ...n, is_read: true, read_at: new Date().toISOString() }
-            : n
-        )
-      );
-
-      // Update on backend
       await markNotificationAsRead(notification.id);
-
-      // Refresh stats
       const statsData = await getNotificationStats();
-      setStats(statsData);
+      if (mountedRef.current) setStats(statsData);
     } catch (error) {
       console.error("Mark as read error", error);
-      // Revert optimistic update on error
-      setNotifications((prev) =>
-        prev.map((n) =>
-          n.id === notification.id ? { ...n, is_read: false, read_at: null } : n
-        )
-      );
+      if (mountedRef.current) setNotifications(originalNotifications);
     }
   }
 
   async function handleMarkAllAsRead() {
+    const unreadIds = notifications.filter((n) => !n.is_read).map((n) => n.id);
+    if (unreadIds.length === 0) {
+      return alert("O'qilmagan bildirishnomalar yo'q.");
+    }
     if (!confirm("Barcha bildirishnomalar o'qilgan deb belgilansinmi?")) return;
 
+    const originalNotifications = [...notifications];
+    setNotifications((prev) =>
+      prev.map((n) => ({
+        ...n,
+        is_read: true,
+        read_at: new Date().toISOString(),
+      }))
+    );
     try {
-      const unreadIds = notifications
-        .filter((n) => !n.is_read)
-        .map((n) => n.id);
-
-      if (unreadIds.length === 0) {
-        alert("O'qilmagan bildirishnomalar yo'q.");
-        return;
-      }
-
-      // Optimistically update UI
-      setNotifications((prev) =>
-        prev.map((n) => ({
-          ...n,
-          is_read: true,
-          read_at: new Date().toISOString(),
-        }))
-      );
-
-      // Update on backend
       await markAllNotificationsAsRead(unreadIds);
-
-      // Refresh stats
       const statsData = await getNotificationStats();
-      setStats(statsData);
-
+      if (mountedRef.current) setStats(statsData);
       alert(`${unreadIds.length} ta bildirishnoma o'qilgan deb belgilandi.`);
     } catch (error) {
       console.error("Mark all as read error", error);
-      // Refresh to get actual state
-      fetchNotifications();
+      if (mountedRef.current) setNotifications(originalNotifications);
     }
   }
 
-  const getNotificationIcon = (type) => {
-    const icons = {
+  const getNotificationIcon = (type) =>
+    ({
       assignment: "📝",
       submission: "✅",
       progress: "📊",
@@ -150,9 +113,7 @@ export default function AdminNotificationsPage() {
       payment: "💰",
       announcement: "📢",
       system: "⚙️",
-    };
-    return icons[type] || "📬";
-  };
+    }[type] || "📬");
 
   const getPriorityStyle = (priority) => {
     if (priority === "high") return "border-l-4 border-red-500 bg-red-50";
@@ -168,12 +129,11 @@ export default function AdminNotificationsPage() {
       const now = new Date();
       const diffMs = now - date;
       const diffMins = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMs / 3600000);
-      const diffDays = Math.floor(diffMs / 86400000);
-
       if (diffMins < 1) return "Hozir";
       if (diffMins < 60) return `${diffMins} daqiqa oldin`;
+      const diffHours = Math.floor(diffMs / 3600000);
       if (diffHours < 24) return `${diffHours} soat oldin`;
+      const diffDays = Math.floor(diffMs / 86400000);
       if (diffDays < 7) return `${diffDays} kun oldin`;
       return date.toLocaleDateString("uz-UZ");
     } catch {
@@ -185,7 +145,6 @@ export default function AdminNotificationsPage() {
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
         <AdminSidebar isOpen={true} />
-
         <main className="flex-1 ml-0 lg:ml-64 p-6">
           <div className="max-w-7xl mx-auto h-full">
             <div className="bg-white rounded-xl shadow p-6 h-[calc(100vh-96px)] overflow-hidden flex flex-col">
@@ -194,16 +153,15 @@ export default function AdminNotificationsPage() {
                 <div>
                   <h2 className="text-2xl font-semibold">Bildirishnomalar</h2>
                   <p className="text-sm text-gray-500">
-                    Tizim bildirshnomalari va muhim xabarlar
+                    Tizim bildirishnomalari va muhim xabarlar
                   </p>
                 </div>
-
                 <div className="flex items-center gap-3">
                   <div className="text-sm text-gray-600">
                     Oxirgi yangilanish: {lastFetchAt ?? "—"}
                   </div>
                   <button
-                    onClick={() => fetchNotifications()}
+                    onClick={fetchNotifications}
                     disabled={loading}
                     className="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50"
                   >
@@ -248,7 +206,6 @@ export default function AdminNotificationsPage() {
                   {loading && notifications.length === 0 && (
                     <div className="p-4 text-center">Yuklanmoqda...</div>
                   )}
-
                   {!loading && notifications.length === 0 && (
                     <div className="p-6 text-center text-gray-500">
                       {filter === "unread"
@@ -256,7 +213,6 @@ export default function AdminNotificationsPage() {
                         : "Hozircha bildirishnomalar yo'q."}
                     </div>
                   )}
-
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
@@ -284,11 +240,9 @@ export default function AdminNotificationsPage() {
                               </span>
                             )}
                           </div>
-
                           <div className="text-sm text-gray-700 mb-2">
                             {notification.message}
                           </div>
-
                           <div className="flex items-center gap-4 text-xs text-gray-500">
                             <span>{formatTime(notification.created_at)}</span>
                             <span className="capitalize">
@@ -298,14 +252,16 @@ export default function AdminNotificationsPage() {
                               <span>👤 {notification.recipient_username}</span>
                             )}
                           </div>
-
                           {notification.related_object_info && (
                             <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                              {notification.related_object_info}
+                              <span>
+                                Bog'liq obyekt:{" "}
+                                {notification.related_object_info.type} (ID:{" "}
+                                {notification.related_object_info.id})
+                              </span>
                             </div>
                           )}
                         </div>
-
                         <div className="flex flex-col items-end gap-2">
                           {notification.is_read ? (
                             <span className="text-green-600 text-sm">
@@ -354,47 +310,59 @@ export default function AdminNotificationsPage() {
                     </div>
                   )}
 
-                  {stats?.by_type && Object.keys(stats.by_type).length > 0 && (
-                    <div className="p-4 border rounded-lg">
-                      <h3 className="font-semibold mb-3">Tur bo'yicha</h3>
-                      <div className="space-y-2 text-sm">
-                        {Object.entries(stats.by_type).map(([type, count]) => (
-                          <div key={type} className="flex justify-between">
-                            <span className="text-gray-600 capitalize flex items-center gap-1">
-                              {getNotificationIcon(type)} {type}
-                            </span>
-                            <span className="font-semibold">{count}</span>
-                          </div>
-                        ))}
+                  {stats?.by_type &&
+                    Array.isArray(stats.by_type) &&
+                    stats.by_type.length > 0 && (
+                      <div className="p-4 border rounded-lg">
+                        <h3 className="font-semibold mb-3">Tur bo'yicha</h3>
+                        <div className="space-y-2 text-sm">
+                          {stats.by_type.map((item) => (
+                            <div
+                              key={item.notification_type}
+                              className="flex justify-between"
+                            >
+                              <span className="text-gray-600 capitalize flex items-center gap-1">
+                                {getNotificationIcon(item.notification_type)}{" "}
+                                {item.notification_type}
+                              </span>
+                              <span className="font-semibold">
+                                {item.count}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
+                  {/* ===================== TUZATILGAN QISM ===================== */}
                   {stats?.by_priority &&
-                    Object.keys(stats.by_priority).length > 0 && (
+                    Array.isArray(stats.by_priority) &&
+                    stats.by_priority.length > 0 && (
                       <div className="p-4 border rounded-lg">
                         <h3 className="font-semibold mb-3">
                           Muhimlik darajasi
                         </h3>
                         <div className="space-y-2 text-sm">
-                          {Object.entries(stats.by_priority).map(
-                            ([priority, count]) => (
-                              <div
-                                key={priority}
-                                className="flex justify-between"
-                              >
-                                <span className="text-gray-600 capitalize">
-                                  {priority === "high" && "🔴"}{" "}
-                                  {priority === "medium" && "🟡"}{" "}
-                                  {priority === "low" && "🟢"} {priority}
-                                </span>
-                                <span className="font-semibold">{count}</span>
-                              </div>
-                            )
-                          )}
+                          {stats.by_priority.map((item) => (
+                            <div
+                              key={item.priority}
+                              className="flex justify-between"
+                            >
+                              <span className="text-gray-600 capitalize">
+                                {item.priority === "high" && "🔴"}{" "}
+                                {item.priority === "medium" && "🟡"}{" "}
+                                {item.priority === "low" && "🟢"}{" "}
+                                {item.priority}
+                              </span>
+                              <span className="font-semibold">
+                                {item.count}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}
+                  {/* ============================================================= */}
 
                   <div className="p-4 border rounded-lg bg-blue-50">
                     <h3 className="font-semibold mb-2 text-blue-900">
