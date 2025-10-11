@@ -1,3 +1,6 @@
+// This file is now obsolete. All routing is handled in src/App.jsx. You can delete this file.
+
+
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
@@ -11,7 +14,7 @@ import TeacherDetail from './pages/teachers/TeacherDetail';
 
 
 
-function App() {
+function Aspp() {
   return (
     <div className="App">
       <Routes>
@@ -22,14 +25,13 @@ function App() {
         <Route path="/courses/:slug" element={<CourseDetail />} />
         <Route path="/teachers" element={<Teachers />} />
         <Route path="/teachers/:id" element={<TeacherDetail />} />
-
-  {/* Platform (cabinet) route */}
-  <Route path="/cabinet/*" element={<PlatformApp />} />
-  {/* Fallback to landing */}
-  <Route path="*" element={<HomePage />} />
+        {/* Platform (cabinet) route */}
+        <Route path="/cabinet/*" element={<PlatformApp />} />
+        {/* Fallback to landing */}
+        <Route path="*" element={<HomePage />} />
       </Routes>
     </div>
   );
 }
 
-export default App
+export default Aspp

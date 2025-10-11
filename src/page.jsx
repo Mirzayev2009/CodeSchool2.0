@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
-export default function HomePage() {
+export default function SignPage() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
 
@@ -98,7 +98,7 @@ export default function HomePage() {
               onClick={() => navigate("/login")}
               className="block w-full py-4 px-6 bg-indigo-600 text-white text-lg font-medium rounded-lg hover:bg-indigo-700 transition-colors whitespace-nowrap"
             >
-              Sign in
+              Sign in gtt
             </button>
           </div>
 

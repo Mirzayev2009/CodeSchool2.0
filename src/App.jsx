@@ -1,8 +1,8 @@
 // src/App.jsx
 // Rename this file to PlatformApp.jsx and update all imports
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { isAuthenticated } from './auth';
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { isAuthenticated } from "./auth";
 // Protected Route wrapper
 function ProtectedRoute({ children }) {
   if (!isAuthenticated()) {
@@ -11,84 +11,188 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+import Enroll from "./landing/pages/Enrollment/Enroll";
+import CourseDetail from "./landing/pages/courses/CourseDetail";
+import Teachers from "./landing/pages/teachers/Teachers";
+import Courses from "./landing/pages/courses/Courses";
+import TeacherDetail from "./landing/pages/teachers/TeacherDetail";
+import HomePage from "./landing/pages/home/Homepage";
+import PlatformApp from "./landing/App";
+
 // Public Pages
-import HomePage from './page';
-import LoginPage from './login/page';
-import NotFound from './not-found';
+import SignPage from "./page";
+import LoginPage from "./login/page";
+import NotFound from "./not-found";
 
 // Student Pages
-import StudentDashboard from './student/dashboard/page';
-import StudentAssignments from './student/assignments/page';
-import HomeworkList from './student/assignments/[id]/homeworks/page';
-import HomeworkDetailPage from './student/assignments/[id]/homeworks/[homeworkId]/page';
-import StudentGroupDetail from './student/groups/[id]/page';
-import StudentProfile from './student/profile/page';
+import StudentDashboard from "./student/dashboard/page";
+import StudentAssignments from "./student/assignments/page";
+import HomeworkList from "./student/assignments/[id]/homeworks/page";
+import HomeworkDetailPage from "./student/assignments/[id]/homeworks/[homeworkId]/page";
+import StudentGroupDetail from "./student/groups/[id]/page";
+import StudentProfile from "./student/profile/page";
 import LessonsList from "./student/lessons/List";
 import LessonDetail from "./student/lessons/Detail";
 
 // Teacher Pages
-import TeacherDashboard from './teacher/dashboard/page';
-import TeacherGroups from './teacher/groups/page';
-import TeacherGroupPage from './teacher/groups/[id]/page';
-import TeacherSchedule from './teacher/schedule/page';
-import TeacherStudents from './teacher/students/page'; 
-import TeacherSettings from './teacher/settings/page';
-import AdminDashboard from './admin/dashboard/page';
-import TeachersManagement from './admin/teachers/page';
-import StudentsManagement from './admin/students/page';
-import PaymentAdminPage from './admin/payment/Payment';
-import AdminSettingsPage from './admin/settings/Settings';
-import Courses from './admin/courses/Courses';
-import CourseCreate from './admin/courses/CourseCreate';
-import Classes from './admin/classes/Classes';
-import ClassCreate from './admin/classes/ClassCreate';
-import TeacherCreate from './admin/teachers/TeacherAdd';
-import StudentCreate from './admin/students/StudentAdd';
-import AdminNotificationsPage from './admin/dashboard/Notifications';
+import TeacherDashboard from "./teacher/dashboard/page";
+import TeacherGroups from "./teacher/groups/page";
+import TeacherGroupPage from "./teacher/groups/[id]/page";
+import TeacherSchedule from "./teacher/schedule/page";
+import TeacherStudents from "./teacher/students/page";
+import TeacherSettings from "./teacher/settings/page";
+import AdminDashboard from "./admin/dashboard/page";
+import TeachersManagement from "./admin/teachers/page";
+import StudentsManagement from "./admin/students/page";
+import PaymentAdminPage from "./admin/payment/Payment";
+import AdminSettingsPage from "./admin/settings/Settings";
+// import Courses from "./admin/courses/Courses";
+import CourseCreate from "./admin/courses/CourseCreate";
+import Classes from "./admin/classes/Classes";
+import ClassCreate from "./admin/classes/ClassCreate";
+import TeacherCreate from "./admin/teachers/TeacherAdd";
+import StudentCreate from "./admin/students/StudentAdd";
+import AdminNotificationsPage from "./admin/dashboard/Notifications";
 
-function PlatformApp() {
+
+function App() {
   return (
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/cabinet" element={<HomePage />} />
-        <Route path="/cabinet/login" element={<LoginPage />} />
+    <Routes>
+      {/* Landing routes */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/enroll" element={<Enroll />} />
+      <Route path="/courses" element={<Courses />} />
+      <Route path="/courses/:slug" element={<CourseDetail />} />
+      <Route path="/teachers" element={<Teachers />} />
+      <Route path="/teachers/:id" element={<TeacherDetail />} />
+      {/* Platform (cabinet) route */}
+      {/* <Route path="/cabinet/*" element={<PlatformApp />} /> */}
+      {/* Fallback to landing */}
+      <Route path="*" element={<SignPage />} />
+      {/* Public Routes */}
+      <Route path="/cabinet" element={<SignPage />} />
+      <Route path="/login" element={<LoginPage />} />
 
-  {/* Student Routes (Protected) */}
-  <Route path="/student/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
-  <Route path="/student/assignments" element={<ProtectedRoute><StudentAssignments /></ProtectedRoute>} />
-  <Route path="/student/assignments/:id/homeworks" element={<ProtectedRoute><HomeworkList /></ProtectedRoute>} />
-  <Route path="/student/assignments/:id/homeworks/:homeworkId" element={<ProtectedRoute><HomeworkDetailPage /></ProtectedRoute>} />
-  <Route path="/student/groups/:id" element={<ProtectedRoute><StudentGroupDetail /></ProtectedRoute>} />
-  <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
-  <Route path="/student/lessons" element={<LessonsList />} />
-        <Route path="/student/lessons/:id" element={<LessonDetail />} />
+      {/* Student Routes (Protected) */}
+      <Route
+        path="/student/dashboard"
+        element={
+          <ProtectedRoute>
+            <StudentDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/assignments"
+        element={
+          <ProtectedRoute>
+            <StudentAssignments />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/assignments/:id/homeworks"
+        element={
+          <ProtectedRoute>
+            <HomeworkList />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/assignments/:id/homeworks/:homeworkId"
+        element={
+          <ProtectedRoute>
+            <HomeworkDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/groups/:id"
+        element={
+          <ProtectedRoute>
+            <StudentGroupDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/profile"
+        element={
+          <ProtectedRoute>
+            <StudentProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/student/lessons" element={<LessonsList />} />
+      <Route path="/student/lessons/:id" element={<LessonDetail />} />
 
-  {/* Teacher Routes (Protected) */}
-  <Route path="/teacher/dashboard" element={<ProtectedRoute><TeacherDashboard /></ProtectedRoute>} />
-  <Route path="/teacher/groups" element={<ProtectedRoute><TeacherGroups /></ProtectedRoute>} />
-  <Route path="/teacher/groups/:id" element={<ProtectedRoute><TeacherGroupPage /></ProtectedRoute>} />
-  <Route path="/teacher/schedule" element={<ProtectedRoute><TeacherSchedule /></ProtectedRoute>} />
-  <Route path="/teacher/students" element={<ProtectedRoute><TeacherStudents /></ProtectedRoute>} />
-  <Route path="/teacher/settings" element={<ProtectedRoute><TeacherSettings /></ProtectedRoute>} />
+      {/* Teacher Routes (Protected) */}
+      <Route
+        path="/teacher/dashboard"
+        element={
+          <ProtectedRoute>
+            <TeacherDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/groups"
+        element={
+          <ProtectedRoute>
+            <TeacherGroups />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/groups/:id"
+        element={
+          <ProtectedRoute>
+            <TeacherGroupPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/schedule"
+        element={
+          <ProtectedRoute>
+            <TeacherSchedule />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/students"
+        element={
+          <ProtectedRoute>
+            <TeacherStudents />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/settings"
+        element={
+          <ProtectedRoute>
+            <TeacherSettings />
+          </ProtectedRoute>
+        }
+      />
 
-        {/* 404 Page */}
-        <Route path="*" element={<NotFound />} />
+      {/* 404 Page */}
+      <Route path="*" element={<NotFound />} />
 
-        {/* admin routes */}
-        <Route path="/admin/dashboard" element={<AdminDashboard/>} />
-        <Route path="/admin/teachers" element={<TeachersManagement/>} /> 
-        <Route path="/admin/students" element={<StudentsManagement/>} /> 
-        <Route path="/admin/payment" element={<PaymentAdminPage/>} />   
-        <Route path="/admin/settings" element={<AdminSettingsPage/>} /> 
-        <Route path="/admin/courses" element={<Courses/>} /> 
-        <Route path="/admin/courses/create" element={<CourseCreate/>} /> 
-        <Route path="/admin/classes" element={<Classes/>} /> 
-        <Route path="/admin/classes/create" element={<ClassCreate/>} /> 
-        <Route path="/admin/teachers/add" element={<TeacherCreate/>} /> 
-        <Route path="/admin/students/add" element={<StudentCreate/>} /> 
-        <Route path="/admin/notifications" element={<AdminNotificationsPage/>} /> 
-      </Routes>
+      {/* admin routes */}
+      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      <Route path="/admin/teachers" element={<TeachersManagement />} />
+      <Route path="/admin/students" element={<StudentsManagement />} />
+      <Route path="/admin/payment" element={<PaymentAdminPage />} />
+      <Route path="/admin/settings" element={<AdminSettingsPage />} />
+      <Route path="/admin/courses" element={<Courses />} />
+      <Route path="/admin/courses/create" element={<CourseCreate />} />
+      <Route path="/admin/classes" element={<Classes />} />
+      <Route path="/admin/classes/create" element={<ClassCreate />} />
+      <Route path="/admin/teachers/add" element={<TeacherCreate />} />
+      <Route path="/admin/students/add" element={<StudentCreate />} />
+      <Route path="/admin/notifications" element={<AdminNotificationsPage />} />
+    </Routes>
   );
 }
 
-export default PlatformApp;
+export default App;

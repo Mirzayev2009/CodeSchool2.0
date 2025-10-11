@@ -55,7 +55,9 @@ export default function Navigation({ currentPage, navigateToPage }) {
             style={{ maxHeight: 40 }}
           />
         </Link>
-        <span className="text-2xl font-bold text-blue-700 hidden md:inline">CodeSchool</span>
+        <span className="text-2xl font-bold text-blue-700 hidden md:inline">
+          CodeSchool
+        </span>
         <ul className="hidden md:flex items-center gap-6 ml-8">
           {navItems.map((item) => (
             <li key={item.page}>
@@ -118,17 +120,18 @@ export default function Navigation({ currentPage, navigateToPage }) {
                   <Phone size={16} />
                   <span className="font-medium">+998 50 400 40 00</span>
                 </a>
-                <button
-                  onClick={() => {
-                    setIsMenuOpen(false);
-                    navigate("/cabinet");
-                    console.log("success");
-                    
-                  }}
-                  className="px-3 py-1 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
-                >
-                  Shaxsiy kabinet
-                </button>
+                <Link to="/cabinet">
+                  <button
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      // navigate("/cabinet");
+                      console.log("success");
+                    }}
+                    className="px-3 py-1 rounded-md bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+                  >
+                    Shaxsiy kabinet
+                  </button>
+                </Link>
                 gfgf
               </div>
             </div>
