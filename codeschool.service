@@ -1,0 +1,40 @@
+# SystemD Service Configuration
+# Save this file as: /etc/systemd/system/codeschool.service
+# 
+# Installation steps:
+# 1. sudo cp codeschool.service /etc/systemd/system/
+# 2. sudo systemctl daemon-reload
+# 3. sudo systemctl enable codeschool
+# 4. sudo systemctl start codeschool
+# 5. sudo systemctl status codeschool
+
+[Unit]
+Description=CodeSchool Node.js Application
+Documentation=https://github.com/Mirzayev2009/CodeSchool2.0
+After=network.target
+
+[Service]
+Type=simple
+User=sanjar
+Group=sanjar
+WorkingDirectory=/home/sanjar/projects/CodeSchool2.0
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=10
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=codeschool
+
+# Security
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/home/sanjar/projects/CodeSchool2.0
+
+[Install]
+WantedBy=multi-user.target
