@@ -11,7 +11,7 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
-import Enroll from "./landing/pages/Enrollment/Enroll";
+import Enroll from "./landing/pages/enrollment/Enroll";
 import CourseDetail from "./landing/pages/courses/CourseDetail";
 import Teachers from "./landing/pages/teachers/Teachers";
 import Courses from "./landing/pages/courses/Courses";

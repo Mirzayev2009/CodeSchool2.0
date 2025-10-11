@@ -1,0 +1,147 @@
+[
+  {
+    "id": 1,
+    "name": "Alisher Khujanov",
+    "subject": "Frontend and Backend Development",
+    "bio": "7+ yillik tajribaga ega frontend va backend dasturchi, zamonaviy UI/UX interfeyslarni yaratishda ustoz.",
+    "achievements": [
+      "Git + Github",
+      "HTML5 | SCSS | JavaScript | TypeScript",
+      "React | Next.js (React Native - optional)",
+      "Vue | Nuxt",
+      "Angular",
+      "Tailwind CSS | Styled Components",
+      "Project - UI / UX design (Figma)",
+      "Responsive & Accessible UI (a11y)",
+      "Performance optimization & code splitting",
+      "Deployment: Vercel, Render, PythonAnywhere",
+      "Python basics | Django",
+      "PostgreSQL | Redis",
+      "Testing: Jest + Playwright",
+      "CI/CD: GitHub Actions",
+      "Docker containerization",
+      "Mentorship & course authoring"
+    ],
+    "image": "https://picsum.photos/seed/alisherkhujanov/300/300"
+  },
+  {
+    "id": 2,
+    "name": "Sanjar",
+    "subject": "Backend and Mobile Development",
+    "bio": "Python va ma’lumotlar bazalarida professional mutaxassis, server taraf tizimlarni ishlab chiqishda yetakchi.",
+    "achievements": [
+      "Node.js (Express, NestJS) asosida 20+ yirik loyiha yaratgan",
+      "Python (Django, FastAPI) bilan backend ishlab chiqish",
+      "AWS Certified Developer",
+      "PostgreSQL | MySQL | MongoDB | Redis",
+      "Docker & Kubernetes — konteynerizatsiya va orkestratsiya",
+      "Microservices arxitektura va API dizayn",
+      "CI/CD yachetkalari (GitHub Actions, GitLab CI)",
+      "Mobile: React Native | Flutter integratsiya tajribasi",
+      "Monitoring va loglash (Prometheus, ELK)",
+      "500+ backend dasturchilarni tayyorlagan"
+    ],
+    "image": "https://picsum.photos/seed/sanjar/300/300"
+  },
+  {
+    "id": 3,
+    "name": "Akmaljon Ismoilov",
+    "subject": "Python Programming",
+    "bio": "Python asosida avtomatlashtirish, web va data science loyihalarida ekspert.",
+    "achievements": [
+      "AI va Data Science sohasida 10+ yil tajriba",
+      "Django va Flask bilan web-ilovalar yaratish",
+      "Data analysis: pandas, NumPy, Matplotlib",
+      "Machine Learning: scikit-learn asoslari",
+      "Web scraping va automation (BeautifulSoup, Selenium)",
+      "API integratsiyalar va ETL jarayonlar",
+      "2000+ talabaga Python bo‘yicha ta’lim bergan",
+      "Dasturlash bo‘yicha xalqaro konferensiyalarda spiker",
+      "Open-source loyihalarga hissa qo‘shgan"
+    ],
+    "image": "https://picsum.photos/seed/akmaljon/300/300"
+  },
+  {
+    "id": 4,
+    "name": "Muhammad Olimov",
+    "subject": "Artificial Intelligence va Python",
+    "bio": "AI va Machine Learning bo‘yicha yetakchi mutaxassis, innovatsion startaplar bilan ishlagan.",
+    "achievements": [
+      "TensorFlow va PyTorch bilan amaliy tajriba",
+      "NLP va Computer Vision loyihalari",
+      "Model deployment va MLOps asoslari",
+      "Data preprocessing va feature engineering",
+      "Model optimization va quantization",
+      "Prototyping for startups — ML proof-of-concept",
+      "Kaggle va akademik loyihalarda ishtirok",
+      "O‘quv kurslari va workshoplar o‘tkazgan"
+    ],
+    "image": "https://picsum.photos/seed/muhammadolimov/300/300"
+  },
+  {
+    "id": 5,
+    "name": "Rustam Abdullaev",
+    "subject": "Graphic Design",
+    "bio": "Grafik dizayn va brending bo‘yicha 15+ yillik tajribaga ega kreativ dizayner.",
+    "achievements": [
+      "Adobe Creative Cloud: Photoshop, Illustrator, InDesign",
+      "Brand identity va logo dizayn",
+      "Print va digital materiallar dizayni",
+      "Packaging va reklama materiallari",
+      "UI dizayn asoslari va Figma amaliyoti",
+      "Brend qo‘llanmalari (brand guidelines) yaratish",
+      "100+ brend uchun logo va brending yaratgan",
+      "Talabalari 50+ dizayn tanlovlarida g‘olib bo‘lgan"
+    ],
+    "image": "https://picsum.photos/seed/rustamabdullaev/300/300"
+  },
+  {
+    "id": 6,
+    "name": "Madina Qodirova",
+    "subject": "3D Max",
+    "bio": "3D modellashtirish va animatsiya ustasi, arxitektura va interyer loyihalarida katta tajribaga ega.",
+    "achievements": [
+      "Autodesk 3ds Max professional tajribasi",
+      "Arxitektura vizualizatsiyasi va renderlar (V-Ray, Corona)",
+      "3D modellashtirish, teksturirovka va materiallar",
+      "Animation va motion graphics asoslari",
+      "Rendering optimizatsiyasi va post-processing",
+      "200+ interyer va eksteryer loyihalarini yaratgan",
+      "500+ talabaga 3D modellashtirishni o‘rgatgan"
+    ],
+    "image": "https://picsum.photos/seed/madinaqodirova/300/300"
+  },
+  {
+    "id": 7,
+    "name": "Shahzod Yusupov",
+    "subject": "SMM",
+    "bio": "Ijtimoiy tarmoqlar marketingi bo‘yicha professional, kontent va reklama kampaniyalarini boshqaruvchi.",
+    "achievements": [
+      "Facebook & Instagram Ads bo‘yicha sertifikatlangan",
+      "Meta, TikTok va YouTube reklama kampaniyalarini yuritish",
+      "Content strategy va kontent-kalendar yaratish",
+      "Analytics: Google Analytics, Meta Business Studio",
+      "Growth hacking va audience targeting",
+      "Influencer marketing va community management",
+      "100+ biznes uchun SMM strategiya ishlab chiqqan",
+      "10,000+ talabaga va biznes egalariga trening o‘tkazgan"
+    ],
+    "image": "https://picsum.photos/seed/shahzodyusupov/300/300"
+  },
+  {
+    "id": 8,
+    "name": "Saida Iskandarova",
+    "subject": "Foundation",
+    "bio": "Kompyuter savodxonligi va ofis dasturlarini o‘rgatishda katta tajribaga ega instruktor.",
+    "achievements": [
+      "Microsoft Office Specialist sertifikatiga ega",
+      "Excel (advanced), Word va PowerPoint bo‘yicha chuqur bilim",
+      "Kompyuter savodxonligi va ofis avtomatizatsiyasi",
+      "Typografiya, email etiketi va professional hujjat tayyorlash",
+      "Onlayn darslar va interaktiv o‘quv materiallari yaratish",
+      "1000+ talabani kompyuter asoslari bo‘yicha tayyorlagan",
+      "10 yildan ortiq o‘qituvchilik tajribasiga ega"
+    ],
+    "image": "https://picsum.photos/seed/saida/300/300"
+  }
+]

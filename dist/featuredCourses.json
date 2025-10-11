@@ -1,0 +1,315 @@
+[
+  {
+    "slug": "frontend",
+    "title": "Frontend",
+    "description": "HTML, CSS va JavaScript asoslari, React va zamonaviy frontend texnologiyalarida professional bilimlarga ega bo‘ling.",
+    "image": "images/front.webp",
+    "duration": "8 hafta",
+    "level": "Boshlang‘ich",
+    "lessons": 35,
+    "highlights": [
+      "HTML, CSS va JavaScript asoslarini o‘zlashtirasiz",
+      "React bilan zamonaviy UI yaratishni o‘rganasiz",
+      "Responsive va mobilga mos dizaynlar qilasiz"
+    ],
+    "curriculum": [
+      {
+        "module": "Frontend Asoslari",
+        "classes": ["HTML asoslari", "CSS bilan dizayn", "JavaScript kirish"]
+      },
+      {
+        "module": "React",
+        "classes": ["React komponentlari", "Props va State", "Hooks va Context"]
+      },
+      {
+        "module": "Final Proyekt",
+        "classes": ["Frontend loyihasi yaratish", "Deployment"]
+      }
+    ],
+    "instructor": {
+      "name": "Dilshod Akbarov",
+      "role": "Frontend Dasturchi",
+      "bio": "5+ yillik tajribaga ega, yuzlab talabalarni o‘qitgan va bir nechta startup loyihalarida ishlagan.",
+      "photo": "https://source.unsplash.com/200x200/?portrait,man"
+    }
+  },
+  {
+    "slug": "backend",
+    "title": "Backend",
+    "description": "Node.js, Express, va ma’lumotlar bazalari (PostgreSQL, MongoDB) yordamida server taraf dasturlashni o‘rganing.",
+    "image": "images/back.webp",
+    "duration": "10 hafta",
+    "level": "O‘rta",
+    "lessons": 40,
+    "highlights": [
+      "Node.js va Express bilan server yaratish",
+      "REST API ishlab chiqish",
+      "PostgreSQL va MongoDB bilan ishlash"
+    ],
+    "curriculum": [
+      {
+        "module": "Backend Asoslari",
+        "classes": ["Node.js asoslari", "Express.js bilan API"]
+      },
+      {
+        "module": "Ma’lumotlar Bazasi",
+        "classes": ["PostgreSQL CRUD", "MongoDB asoslari"]
+      },
+      {
+        "module": "Final Proyekt",
+        "classes": ["Server loyihasi yaratish", "Authentication va Deployment"]
+      }
+    ],
+    "instructor": {
+      "name": "Azizbek Rasulov",
+      "role": "Backend Developer",
+      "bio": "Yirik kompaniyalarda ishlagan va ma’lumotlar bazasi optimallashtirish bo‘yicha mutaxassis.",
+      "photo": "https://source.unsplash.com/200x200/?portrait,developer"
+    }
+  },
+  {
+    "slug": "python",
+    "title": "Python",
+    "description": "Python dasturlash tilida kuchli asoslarni o‘rganing: avtomatlashtirish, ma’lumotlar tahlili va web dasturlash.",
+    "image": "images/python.webp",
+    "duration": "9 hafta",
+    "level": "Boshlang‘ich",
+    "lessons": 38,
+    "highlights": [
+      "Python sintaksisi va dasturlash asoslari",
+      "Ma’lumotlar tahlili va avtomatlashtirish",
+      "Django va Flask bilan web dasturlar"
+    ],
+    "curriculum": [
+      {
+        "module": "Python Fundamentals",
+        "classes": ["Syntax va Variables", "Loops va Functions", "OOP asoslari"]
+      },
+      {
+        "module": "Data va Automation",
+        "classes": ["Pandas bilan Data Analysis", "Automatizatsiya skriptlari"]
+      },
+      {
+        "module": "Web Development",
+        "classes": ["Flask kirish", "Django asoslari"]
+      }
+    ],
+    "instructor": {
+      "name": "Sevara Ismoilova",
+      "role": "Python Dasturchi",
+      "bio": "Ma’lumotlar tahlili va web dasturlashda tajribaga ega, startuplar bilan ishlagan.",
+      "photo": "https://source.unsplash.com/200x200/?portrait,woman"
+    }
+  },
+  {
+    "slug": "ai",
+    "title": "Sun’iy Intellekt (AI)",
+    "description": "AI va Machine Learning asoslari: neyron tarmoqlar, model yaratish va amaliy loyihalar.",
+    "image": "images/ai.webp",
+    "duration": "12 hafta",
+    "level": "Ilg‘or",
+    "lessons": 50,
+    "highlights": [
+      "Machine Learning algoritmlari",
+      "Neyron tarmoqlar va TensorFlow",
+      "Real-life AI loyihalari"
+    ],
+    "curriculum": [
+      {
+        "module": "AI Foundations",
+        "classes": ["ML asoslari", "Supervised vs Unsupervised Learning"]
+      },
+      {
+        "module": "Neural Networks",
+        "classes": ["TensorFlow kirish", "Kichik model yaratish"]
+      },
+      {
+        "module": "Final Project",
+        "classes": ["AI loyiha ishlab chiqish", "Deployment"]
+      }
+    ],
+    "instructor": {
+      "name": "Rustam Norqobilov",
+      "role": "AI Engineer",
+      "bio": "AI sohasida 7 yillik tajribaga ega, xalqaro loyihalarda qatnashgan.",
+      "photo": "https://source.unsplash.com/200x200/?portrait,scientist"
+    }
+  },
+  {
+  "slug": "mobile-flutter",
+  "title": "Mobile — Flutter",
+  "description": "Flutter va Dart yordamida cross-platform mobil ilovalar yaratishni o‘rganing: UI dizayn, state management, API integratsiyasi va ilovani nashr qilishgacha.",
+  "image": "images/flutter.webp",
+  "duration": "8 hafta",
+  "level": "Boshlang‘ich",
+  "lessons": 24,
+  "highlights": [
+    "Dart dasturlash tili",
+    "Flutter widgets va layout",
+    "State management (Provider, Bloc kirish)",
+    "REST API va lokal ma'lumotlar bilan ishlash",
+    "Firebase bilan autentifikatsiya va ma'lumotlar saqlash",
+    "Ilovani Play Store/App Store uchun tayyorlash"
+  ],
+  "curriculum": [
+    {
+      "module": "Dart asoslari",
+      "classes": ["O‘zgaruvchilar va turlari", "Funktsiyalar va OOP", "Asinxronlik (Future, async/await)"]
+    },
+    {
+      "module": "Flutter asoslari",
+      "classes": ["Widgets tuzilishi", "Layout va responsiv dizayn", "Navigatsiya va routing"]
+    },
+    {
+      "module": "State management",
+      "classes": ["setState va lifecycle", "Provider bilan boshqaruv", "Bloc/Streams ga kirish (tanlov uchun)"]
+    },
+    {
+      "module": "Ma'lumotlar va API",
+      "classes": ["HTTP so‘rovlar va JSON parsing", "Local storage — SharedPreferences va SQLite", "Firebase Firestore bilan ishlash"]
+    },
+    {
+      "module": "Deployment va optimizatsiya",
+      "classes": ["Debug va profiling", "App store metadata va nashr qilish", "Performans optimizatsiyasi"]
+    },
+    {
+      "module": "Final loyiha",
+      "classes": ["Ilova rejalashtirish", "Implementatsiya va test", "Prezidentatsiya va GitHub hosting"]
+    }
+  ],
+  "instructor": {
+    "name": "Javlon Mirzaev",
+    "role": "Mobile Trener",
+    "bio": "Mobil ilovalar ishlab chiqishda bir nechta startap va korporativ loyihalarda qatnashgan, Flutter asosida real-world ilovalar yaratishni o‘rgatadi.",
+    "photo": "https://source.unsplash.com/200x200/?developer,phone"
+  }
+},
+  {
+    "slug": "design",
+    "title": "Grafik Dizayn",
+    "description": "Photoshop, Illustrator va zamonaviy dizayn vositalarida kreativ dizayn loyihalari yarating.",
+    "image": "images/graphic.webp",
+    "duration": "6 hafta",
+    "level": "Boshlang‘ich",
+    "lessons": 25,
+    "highlights": [
+      "Photoshop va Illustrator asoslari",
+      "Logo va banner dizayni",
+      "Kreativ grafik loyihalar"
+    ],
+    "curriculum": [
+      {
+        "module": "Dizayn Asoslari",
+        "classes": ["Ranglar nazariyasi", "Typography asoslari"]
+      },
+      {
+        "module": "Grafik Tools",
+        "classes": ["Photoshop", "Illustrator"]
+      },
+      {
+        "module": "Final Project",
+        "classes": ["Portfolio uchun dizayn yaratish"]
+      }
+    ],
+    "instructor": {
+      "name": "Nigora Yusupova",
+      "role": "Grafik Dizayner",
+      "bio": "Kreativ dizayner, reklama agentliklarida ishlagan va dizayn master-klasslarida mentorlik qilgan.",
+      "photo": "https://source.unsplash.com/200x200/?portrait,woman,designer"
+    }
+  },
+  {
+    "slug": "3dmax",
+    "title": "3D Max",
+    "description": "3D modellashtirish va animatsiya asoslarini 3D Max dasturida chuqur o‘rganing.",
+    "image": "images/3d.webp",
+    "duration": "10 hafta",
+    "level": "O‘rta",
+    "lessons": 30,
+    "highlights": [
+      "3D modellashtirish asoslari",
+      "Materiallar va Texturing",
+      "Animatsiya jarayonlari"
+    ],
+    "curriculum": [
+      {
+        "module": "3D Modellashtirish",
+        "classes": ["Basic Modeling", "Advanced Techniques"]
+      },
+      {
+        "module": "Animation",
+        "classes": ["Rigging", "Keyframing"]
+      },
+      {
+        "module": "Final Project",
+        "classes": ["3D animatsiya tayyorlash"]
+      }
+    ],
+    "instructor": {
+      "name": "Javohir Qodirov",
+      "role": "3D Artist",
+      "bio": "3D dizayn va animatsiyada tajribali, reklama va kino loyihalarida ishlagan.",
+      "photo": "https://source.unsplash.com/200x200/?portrait,3d,artist"
+    }
+  },
+  {
+    "slug": "smm",
+    "title": "SMM",
+    "description": "Ijtimoiy tarmoqlar marketingi, kontent yaratish va onlayn brend boshqaruvi bo‘yicha bilimlarga ega bo‘ling.",
+    "image": "images/smm.webp",
+    "duration": "6 hafta",
+    "level": "Boshlang‘ich",
+    "lessons": 20,
+    "highlights": [
+      "SMM strategiyalarini o‘rganasiz",
+      "Kontent kalendari yaratish",
+      "Brend boshqaruvi va reklama"
+    ],
+    "curriculum": [
+      {
+        "module": "SMM Asoslari",
+        "classes": ["Facebook va Instagram Marketing", "Kontent yaratish"]
+      },
+      {
+        "module": "Analitika",
+        "classes": ["Engagement o‘lchash", "Reklama tahlili"]
+      }
+    ],
+    "instructor": {
+      "name": "Malika Tursunova",
+      "role": "SMM Mutaxassis",
+      "bio": "Ijtimoiy media marketingda 4 yillik tajriba, ko‘plab brendlar bilan ishlagan.",
+      "photo": "https://source.unsplash.com/200x200/?portrait,woman,marketing"
+    }
+  },
+  {
+    "slug": "foundation",
+    "title": "Foundation",
+    "description": "Excel, Word va kompyuter savodxonligi bo‘yicha asosiy bilimlarni o‘rganib, IT sohasiga ilk qadam qo‘ying.",
+    "image": "images/foundation.webp",
+    "duration": "4 hafta",
+    "level": "Boshlang‘ich",
+    "lessons": 15,
+    "highlights": [
+      "Kompyuter savodxonligi",
+      "Word va Excel asoslari",
+      "IT sohasiga kirish"
+    ],
+    "curriculum": [
+      {
+        "module": "Basic Skills",
+        "classes": ["Kompyuter asoslari", "Office dasturlari"]
+      },
+      {
+        "module": "Final Project",
+        "classes": ["Office hujjat tayyorlash"]
+      }
+    ],
+    "instructor": {
+      "name": "Sherzod Xolmatov",
+      "role": "IT Trener",
+      "bio": "Boshlang‘ich IT kurslarini o‘qitishda tajribali, o‘quvchilarga asosiy bilimlarni samarali yetkazadi.",
+      "photo": "https://source.unsplash.com/200x200/?portrait,teacher"
+    }
+  }
+]

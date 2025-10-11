@@ -6,7 +6,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 
 import PlatformApp from '../App';
 import HomePage from './pages/home/Homepage';
-import Enroll from './pages/Enrollment/Enroll';
+import Enroll from './pages/enrollment/Enroll';
 import CourseDetail from './pages/courses/CourseDetail';
 import Teachers from './pages/teachers/Teachers';
 import Courses from './pages/courses/Courses';
