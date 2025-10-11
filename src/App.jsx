@@ -1,4 +1,6 @@
 // src/App.jsx
+// Rename this file to PlatformApp.jsx and update all imports
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { isAuthenticated } from './auth';
 // Protected Route wrapper
@@ -44,14 +46,12 @@ import TeacherCreate from './admin/teachers/TeacherAdd';
 import StudentCreate from './admin/students/StudentAdd';
 import AdminNotificationsPage from './admin/dashboard/Notifications';
 
-function App() {
+function PlatformApp() {
   return (
-
       <Routes>
         {/* Public Routes */}
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-
+        <Route path="/cabinet" element={<HomePage />} />
+        <Route path="/cabinet/login" element={<LoginPage />} />
 
   {/* Student Routes (Protected) */}
   <Route path="/student/dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
@@ -87,9 +87,8 @@ function App() {
         <Route path="/admin/teachers/add" element={<TeacherCreate/>} /> 
         <Route path="/admin/students/add" element={<StudentCreate/>} /> 
         <Route path="/admin/notifications" element={<AdminNotificationsPage/>} /> 
-       
       </Routes>
   );
 }
 
-export default App;
+export default PlatformApp;
