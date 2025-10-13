@@ -98,7 +98,7 @@ export default function SignPage() {
               onClick={() => navigate("/login")}
               className="block w-full py-4 px-6 bg-indigo-600 text-white text-lg font-medium rounded-lg hover:bg-indigo-700 transition-colors whitespace-nowrap"
             >
-              Sign in gtt
+              Sign in 
             </button>
           </div>
 
