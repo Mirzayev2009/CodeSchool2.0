@@ -214,7 +214,7 @@ const HomePage = () => {
               <Card
                 key={index}
                 className="overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:scale-105 cursor-pointer group"
-                onClick={() => navigate(`courses/${course.slug}`)}
+                onClick={() => navigate(`coursess/${course.slug}`)}
               >
                 <div className="relative h-auto overflow-hidden">
                   <img

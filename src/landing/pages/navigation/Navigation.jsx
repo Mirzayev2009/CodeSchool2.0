@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { GraduationCap, Phone, Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-const NAV_HEIGHT = 64; // was 72, h-16 == 64px
+const NAV_HEIGHT = 90; // was 72, h-16 == 64px
 
 const items = [
   { label: "Kurslar", id: "courses-section" },
@@ -69,10 +69,10 @@ export default function Navigation({ currentPage, navigateToPage }) {
             onClick={() => navigate("/")}
           >
             {/* Responsive logo box */}
-            <div className="w-13 h-13 md:w-14 md:h-14 lg:w-16 lg:h-16  overflow-hidden flex items-center justify-center bg-gray-200">
+            <div className="w-20 h-15 overflow-hidden flex items-center justify-center bg-gray-200">
               <img
-                className="w-full h-full object-contain"
-                src="/images/ava_white.jpg"
+                className="w-fit h-full object-contain"
+                src="/images/ava.jpg"
                 alt="Company logo"
               />
             </div>

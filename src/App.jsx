@@ -14,10 +14,9 @@ function ProtectedRoute({ children }) {
 import Enroll from "./landing/pages/enrollment/Enroll";
 import CourseDetail from "./landing/pages/courses/CourseDetail";
 import Teachers from "./landing/pages/teachers/Teachers";
-import Courses from "./landing/pages/courses/Courses";
 import TeacherDetail from "./landing/pages/teachers/TeacherDetail";
 import HomePage from "./landing/pages/home/Homepage";
-import PlatformApp from "./landing/App";
+
 
 // Public Pages
 import SignPage from "./page";
@@ -46,7 +45,7 @@ import TeachersManagement from "./admin/teachers/page";
 import StudentsManagement from "./admin/students/page";
 import PaymentAdminPage from "./admin/payment/Payment";
 import AdminSettingsPage from "./admin/settings/Settings";
-// import Courses from "./admin/courses/Courses";
+import Courses from "./admin/courses/Courses";
 import CourseCreate from "./admin/courses/CourseCreate";
 import Classes from "./admin/classes/Classes";
 import ClassCreate from "./admin/classes/ClassCreate";
@@ -55,14 +54,15 @@ import StudentCreate from "./admin/students/StudentAdd";
 import AdminNotificationsPage from "./admin/dashboard/Notifications";
 
 
+
 function App() {
   return (
     <Routes>
       {/* Landing routes */}
       <Route path="/" element={<HomePage />} />
       <Route path="/enroll" element={<Enroll />} />
-      <Route path="/courses" element={<Courses />} />
-      <Route path="/courses/:slug" element={<CourseDetail />} />
+      {/* <Route path="/coursess" element={<Courses />} /> */}
+      <Route path="/coursess/:slug" element={<CourseDetail />} />
       <Route path="/teachers" element={<Teachers />} />
       <Route path="/teachers/:id" element={<TeacherDetail />} />
       {/* Platform (cabinet) route */}
@@ -184,8 +184,8 @@ function App() {
       <Route path="/admin/students" element={<StudentsManagement />} />
       <Route path="/admin/payment" element={<PaymentAdminPage />} />
       <Route path="/admin/settings" element={<AdminSettingsPage />} />
-      <Route path="/admin/courses" element={<Courses />} />
-      <Route path="/admin/courses/create" element={<CourseCreate />} />
+      <Route path="/admin/coursesad" element={<Courses />} />
+      <Route path="/admin/coursesad/create" element={<CourseCreate />} />
       <Route path="/admin/classes" element={<Classes />} />
       <Route path="/admin/classes/create" element={<ClassCreate />} />
       <Route path="/admin/teachers/add" element={<TeacherCreate />} />

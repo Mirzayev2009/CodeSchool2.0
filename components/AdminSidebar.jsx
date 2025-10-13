@@ -41,7 +41,7 @@ const menuItems = [
     id: "courses",
     name: "Darslar",
     icon: <Calendar size={20} />,
-    path: "/admin/courses",
+    path: "/admin/coursesad",
   },
   {
     id: "settings",
