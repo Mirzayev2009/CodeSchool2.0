@@ -1,0 +1,39 @@
+[
+  {
+    "title": "Frontend dasturlash",
+    "description": "HTML, CSS va JavaScript yordamida zamonaviy veb-saytlar va platformalar interfeyslarini ishlab chiqing. Frontend mutaxassislari IT kompaniyalarda yuqori talabga ega va yaxshi daromad topishadi.",
+    "image": "https://source.unsplash.com/featured/?frontend,developer"
+  },
+  {
+    "title": "Python dasturlash",
+    "description": "Ma’lumotlar tahlili, veb-ilovalar va avtomatlashtirish sohalarida keng qo‘llaniladigan Python tilini chuqur o‘rganing. Bu ko‘nikmalar orqali xalqaro loyihalarda ishlash imkoniyatiga ega bo‘lasiz.",
+    "image": "https://source.unsplash.com/featured/?frontend,developer"
+  },
+{
+  "title": "Artificial Intelligence",
+  "description": "Sun’iy intellekt asoslarini chuqur o‘rganing: mashina o‘rganishi, neyron tarmoqlar va ma’lumotlar tahlili. Kelajak kasblarida, jumladan avtomatlashtirish, robototexnika va IT sohalarida yuqori maoshli karyera eshiklarini oching.",
+  "image": "https://source.unsplash.com/featured/?ai,technology"
+
+}
+,
+  {
+    "title": "SMM va raqamli marketing",
+    "description": "Ijtimoiy tarmoqlarda auditoriya jalb qilish, reklama kampaniyalarini yuritish va brend yaratishni o‘rganing. SMM mutaxassislari biznesni rivojlantirishda asosiy rollardan birini egallashadi.",
+    "image": "https://source.unsplash.com/featured/?marketing,socialmedia"
+  },
+  {
+    "title": "Grafik dizayn va 3D Max",
+    "description": "Logotip, banner va reklama materiallari yaratishdan tortib, 3D modellarni ishlab chiqishgacha bo‘lgan ko‘nikmalarni egallang. Dizaynerlik kasbi ijodkorlik va barqaror daromadni uyg‘unlashtiradi.",
+    "image": "https://source.unsplash.com/featured/?design,3d"
+  },
+  {
+    "title": "Mobil dasturlash (Flutter)",
+    "description": "Android va iOS uchun mobil ilovalar yaratishni o‘rganib, xalqaro bozorga chiqish imkoniyatini qo‘lga kiriting. Mobil dasturchilar startaplar va yirik kompaniyalarda yuqori qadrlanadi.",
+    "image": "https://source.unsplash.com/featured/?mobile,flutter"
+  },
+  {
+    "title": "Foundation (Kompyuter savodxonligi)",
+    "description": "Kompyuter va internetdan to‘g‘ri foydalanish, ofis dasturlarida ishlash va asosiy IT ko‘nikmalarini egallash. Ushbu kurs IT sohasi uchun mustahkam poydevor yaratadi va kelajakdagi o‘qishlaringizga tayyorlaydi.",
+    "image": "https://source.unsplash.com/featured/?computer,basic"
+  }
+]
